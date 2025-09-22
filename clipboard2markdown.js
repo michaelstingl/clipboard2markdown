@@ -162,11 +162,41 @@
 
     document.addEventListener('keydown', function (event) {
       if (event.ctrlKey || event.metaKey) {
-        if (String.fromCharCode(event.which).toLowerCase() === 'v') {
+        var key = String.fromCharCode(event.which).toLowerCase();
+
+        if (key === 'v') {
           pastebin.innerHTML = '';
           pastebin.focus();
           info.classList.add('hidden');
           wrapper.classList.add('hidden');
+        } else if (key === 'l' && !wrapper.classList.contains('hidden')) {
+          // Ctrl/Cmd+L to clear - return to initial screen
+          event.preventDefault();
+          output.value = '';
+          pastebin.innerHTML = '';
+          info.classList.remove('hidden');
+          wrapper.classList.add('hidden');
+        } else if (key === 's' && !wrapper.classList.contains('hidden')) {
+          // Ctrl/Cmd+S to download
+          event.preventDefault();
+          var text = output.value;
+          var blob = new Blob([text], {type: 'text/markdown;charset=utf-8'});
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          // Add timestamp to filename
+          var now = new Date();
+          var timestamp = now.getFullYear() +
+                         ('0' + (now.getMonth() + 1)).slice(-2) +
+                         ('0' + now.getDate()).slice(-2) + '_' +
+                         ('0' + now.getHours()).slice(-2) +
+                         ('0' + now.getMinutes()).slice(-2) +
+                         ('0' + now.getSeconds()).slice(-2);
+          a.download = 'clipboard2markdown_' + timestamp + '.md';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         }
       }
     });
@@ -182,5 +212,41 @@
         output.select();
       }, 200);
     });
+
+    // Clear button functionality - return to initial screen
+    var clearBtn = document.querySelector('#clear-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        output.value = '';
+        pastebin.innerHTML = '';
+        info.classList.remove('hidden');
+        wrapper.classList.add('hidden');
+      });
+    }
+
+    // Download button functionality
+    var downloadBtn = document.querySelector('#download-btn');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', function () {
+        var text = output.value;
+        var blob = new Blob([text], {type: 'text/markdown;charset=utf-8'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        // Add timestamp to filename
+        var now = new Date();
+        var timestamp = now.getFullYear() +
+                       ('0' + (now.getMonth() + 1)).slice(-2) +
+                       ('0' + now.getDate()).slice(-2) + '_' +
+                       ('0' + now.getHours()).slice(-2) +
+                       ('0' + now.getMinutes()).slice(-2) +
+                       ('0' + now.getSeconds()).slice(-2);
+        a.download = 'markdown_' + timestamp + '.md';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
   });
 })();

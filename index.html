@@ -67,11 +67,17 @@
                     <li>Copy it to the clipboard (<code>Ctrl+C</code>, or <code>&#8984;+C</code> on Mac)</li>
                     <li>Paste it into this window (<code>Ctrl+V</code>, or <code>&#8984;+V</code> on Mac)</li>
                     <li>The converted Markdown will appear!</li>
+                    <li>Clear the output (<code>Ctrl+L</code>, or <code>&#8984;+L</code> on Mac)</li>
+                    <li>Download as .md file (<code>Ctrl+S</code>, or <code>&#8984;+S</code> on Mac)</li>
                 </ol>
                 <p>The conversion is carried out by <a href="https://github.com/domchristie/to-markdown">to-markdown</a>, a Markdown converter written in JavaScript and running locally in the browser.</p>
             </section>
             <div contenteditable="true" id="pastebin"></div>
             <section class="hidden" id="wrapper">
+                <div style="margin-bottom: 10px;">
+                    <button id="clear-btn" class="btn btn-default" title="Clear (Ctrl+L / ⌘+L)">Clear</button>
+                    <button id="download-btn" class="btn btn-primary" title="Download (Ctrl+S / ⌘+S)">Download Markdown</button>
+                </div>
                 <textarea id="output"></textarea>
             </section>
         </div>
