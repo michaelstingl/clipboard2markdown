@@ -1,111 +1,116 @@
 (function () {
   'use strict';
 
-  // http://pandoc.org/README.html#pandocs-markdown
-  var pandoc = [
-    {
-      filter: 'h1',
-      replacement: function (content, node) {
-        var underline = Array(content.length + 1).join('=');
-        return '\n\n' + content + '\n' + underline + '\n\n';
-      }
+  // Initialize Turndown service with custom rules
+  var turndownService = new TurndownService({
+    headingStyle: 'setext',
+    hr: '* * * * *',
+    bulletListMarker: '-',
+    codeBlockStyle: 'fenced',
+    emDelimiter: '*',
+    strongDelimiter: '**',
+    linkStyle: 'inlined'
+  });
+
+  // Add custom rules for Pandoc-style markdown
+  turndownService.addRule('h1', {
+    filter: 'h1',
+    replacement: function (content, node) {
+      var underline = Array(content.length + 1).join('=');
+      return '\n\n' + content + '\n' + underline + '\n\n';
+    }
+  });
+
+  turndownService.addRule('h2', {
+    filter: 'h2',
+    replacement: function (content, node) {
+      var underline = Array(content.length + 1).join('-');
+      return '\n\n' + content + '\n' + underline + '\n\n';
+    }
+  });
+
+  turndownService.addRule('sup', {
+    filter: 'sup',
+    replacement: function (content) {
+      return '^' + content + '^';
+    }
+  });
+
+  turndownService.addRule('sub', {
+    filter: 'sub',
+    replacement: function (content) {
+      return '~' + content + '~';
+    }
+  });
+
+  turndownService.addRule('br', {
+    filter: 'br',
+    replacement: function () {
+      return '\\\n';
+    }
+  });
+
+  turndownService.addRule('hr', {
+    filter: 'hr',
+    replacement: function () {
+      return '\n\n* * * * *\n\n';
+    }
+  });
+
+  turndownService.addRule('cite-var', {
+    filter: ['cite', 'var'],
+    replacement: function (content) {
+      return '*' + content + '*';
+    }
+  });
+
+  turndownService.addRule('kbd-samp-tt', {
+    filter: function (node) {
+      var isCodeElem = node.nodeName === 'KBD' ||
+          node.nodeName === 'SAMP' ||
+          node.nodeName === 'TT';
+      return isCodeElem;
     },
+    replacement: function (content) {
+      return '`' + content + '`';
+    }
+  });
 
-    {
-      filter: 'h2',
-      replacement: function (content, node) {
-        var underline = Array(content.length + 1).join('-');
-        return '\n\n' + content + '\n' + underline + '\n\n';
-      }
+  turndownService.addRule('link', {
+    filter: function (node) {
+      return node.nodeName === 'A' && node.getAttribute('href');
     },
-
-    {
-      filter: 'sup',
-      replacement: function (content) {
-        return '^' + content + '^';
-      }
-    },
-
-    {
-      filter: 'sub',
-      replacement: function (content) {
-        return '~' + content + '~';
-      }
-    },
-
-    {
-      filter: 'br',
-      replacement: function () {
-        return '\\\n';
-      }
-    },
-
-    {
-      filter: 'hr',
-      replacement: function () {
-        return '\n\n* * * * *\n\n';
-      }
-    },
-
-    {
-      filter: ['em', 'i', 'cite', 'var'],
-      replacement: function (content) {
-        return '*' + content + '*';
-      }
-    },
-
-    {
-      filter: function (node) {
-        var hasSiblings = node.previousSibling || node.nextSibling;
-        var isCodeBlock = node.parentNode.nodeName === 'PRE' && !hasSiblings;
-        var isCodeElem = node.nodeName === 'CODE' ||
-            node.nodeName === 'KBD' ||
-            node.nodeName === 'SAMP' ||
-            node.nodeName === 'TT';
-
-        return isCodeElem && !isCodeBlock;
-      },
-      replacement: function (content) {
-        return '`' + content + '`';
-      }
-    },
-
-    {
-      filter: function (node) {
-        return node.nodeName === 'A' && node.getAttribute('href');
-      },
-      replacement: function (content, node) {
-        var url = node.getAttribute('href');
-        var titlePart = node.title ? ' "' + node.title + '"' : '';
-        if (content === url) {
-          return '<' + url + '>';
-        } else if (url === ('mailto:' + content)) {
-          return '<' + content + '>';
-        } else {
-          return '[' + content + '](' + url + titlePart + ')';
-        }
-      }
-    },
-
-    {
-      filter: 'li',
-      replacement: function (content, node) {
-        content = content.replace(/^\s+/, '').replace(/\n/gm, '\n    ');
-        var prefix = '-   ';
-        var parent = node.parentNode;
-
-        if (/ol/i.test(parent.nodeName)) {
-          var index = Array.prototype.indexOf.call(parent.children, node) + 1;
-          prefix = index + '. ';
-          while (prefix.length < 4) {
-            prefix += ' ';
-          }
-        }
-
-        return prefix + content;
+    replacement: function (content, node) {
+      var url = node.getAttribute('href');
+      var titlePart = node.title ? ' "' + node.title + '"' : '';
+      if (content === url) {
+        return '<' + url + '>';
+      } else if (url === ('mailto:' + content)) {
+        return '<' + content + '>';
+      } else {
+        return '[' + content + '](' + url + titlePart + ')';
       }
     }
-  ];
+  });
+
+  turndownService.addRule('listItem', {
+    filter: 'li',
+    replacement: function (content, node) {
+      content = content.replace(/^\s+/, '').replace(/\n/gm, '\n    ');
+      var prefix = '-   ';
+      var parent = node.parentNode;
+
+      if (/ol/i.test(parent.nodeName)) {
+        var index = Array.prototype.indexOf.call(parent.children, node) + 1;
+        prefix = index + '. ';
+        while (prefix.length < 4) {
+          prefix += ' ';
+        }
+      }
+
+      return prefix + content;
+    }
+  });
 
   // http://pandoc.org/README.html#smart-punctuation
   var escape = function (str) {
@@ -127,7 +132,7 @@
   };
 
   var convert = function (str) {
-    return escape(toMarkdown(str, { converters: pandoc, gfm: true }));
+    return escape(turndownService.turndown(str));
   }
 
   var insert = function (myField, myValue) {
@@ -155,6 +160,22 @@
 
   // http://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser
   document.addEventListener('DOMContentLoaded', function () {
+    // Log version info to console
+    console.log('%c clipboard2markdown ', 'background: #222; color: #bada55; font-weight: bold; padding: 2px 5px; border-radius: 3px;');
+    console.log('Version: 2.0.0');
+    console.group('Dependencies:');
+    console.log('• Turndown v7.2.1 (Markdown converter)');
+    console.log('• Bootstrap v3.3.6 (CSS framework)');
+    console.groupEnd();
+    console.log('Repository: https://github.com/michaelstingl/clipboard2markdown');
+
+    // Check if libraries are available
+    if (typeof TurndownService !== 'undefined') {
+      console.log('✓ Turndown loaded successfully');
+    } else {
+      console.error('✗ Turndown not found!');
+    }
+
     var info = document.querySelector('#info');
     var pastebin = document.querySelector('#pastebin');
     var output = document.querySelector('#output');
