@@ -12,6 +12,16 @@
     linkStyle: 'inlined'
   });
 
+  // Filter out nodes with only whitespace for cleaner output
+  turndownService.addRule('whitespaceOnly', {
+    filter: function(node) {
+      return node.nodeType === 3 && !node.textContent.trim();
+    },
+    replacement: function() {
+      return '';
+    }
+  });
+
   // Add custom rules for Pandoc-style markdown
   turndownService.addRule('h1', {
     filter: 'h1',
@@ -57,10 +67,33 @@
     }
   });
 
-  turndownService.addRule('cite-var', {
-    filter: ['cite', 'var'],
+  // Override emphasis to handle spaces properly
+  turndownService.addRule('emphasisWithSpaces', {
+    filter: ['em', 'i', 'cite', 'var'],
     replacement: function (content) {
-      return '*' + content + '*';
+      if (!content.trim()) return '';
+      // Move leading/trailing spaces outside of markdown syntax
+      var leadingSpace = content.match(/^\s+/) ? content.match(/^\s+/)[0] : '';
+      var trailingSpace = content.match(/\s+$/) ? content.match(/\s+$/)[0] : '';
+      if (leadingSpace || trailingSpace) {
+        content = content.trim();
+      }
+      return leadingSpace + '*' + content + '*' + trailingSpace;
+    }
+  });
+
+  // Override strong to handle spaces properly (includes <b> tags)
+  turndownService.addRule('strongWithSpaces', {
+    filter: ['strong', 'b'],
+    replacement: function (content) {
+      if (!content.trim()) return '';
+      // Move leading/trailing spaces outside of markdown syntax
+      var leadingSpace = content.match(/^\s+/) ? content.match(/^\s+/)[0] : '';
+      var trailingSpace = content.match(/\s+$/) ? content.match(/\s+$/)[0] : '';
+      if (leadingSpace || trailingSpace) {
+        content = content.trim();
+      }
+      return leadingSpace + '**' + content + '**' + trailingSpace;
     }
   });
 
@@ -81,15 +114,26 @@
       return node.nodeName === 'A' && node.getAttribute('href');
     },
     replacement: function (content, node) {
+      // Move leading/trailing spaces outside of markdown syntax
+      var leadingSpace = content.match(/^\s+/) ? content.match(/^\s+/)[0] : '';
+      var trailingSpace = content.match(/\s+$/) ? content.match(/\s+$/)[0] : '';
+      if (leadingSpace || trailingSpace) {
+        content = content.trim();
+      }
+
       var url = node.getAttribute('href');
       var titlePart = node.title ? ' "' + node.title + '"' : '';
+      var linkMarkdown;
+
       if (content === url) {
-        return '<' + url + '>';
+        linkMarkdown = '<' + url + '>';
       } else if (url === ('mailto:' + content)) {
-        return '<' + content + '>';
+        linkMarkdown = '<' + content + '>';
       } else {
-        return '[' + content + '](' + url + titlePart + ')';
+        linkMarkdown = '[' + content + '](' + url + titlePart + ')';
       }
+
+      return leadingSpace + linkMarkdown + trailingSpace;
     }
   });
 
