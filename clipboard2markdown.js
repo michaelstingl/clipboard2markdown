@@ -12,6 +12,11 @@
     linkStyle: 'inlined'
   });
 
+  // Use GFM plugin for table support (if available)
+  if (typeof turndownPluginGfm !== 'undefined') {
+    turndownService.use(turndownPluginGfm.tables);
+  }
+
   // Filter out nodes with only whitespace for cleaner output
   turndownService.addRule('whitespaceOnly', {
     filter: function(node) {
@@ -156,6 +161,70 @@
     }
   });
 
+  // Fix and enhance table conversion
+  var fixTablePipes = function(markdown) {
+    var lines = markdown.split('\n');
+    var result = [];
+    var potentialTableRows = [];
+    var inTable = false;
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmedLine = line.trim();
+
+      // Skip standalone pipe characters
+      if (trimmedLine === '|') {
+        continue;
+      }
+
+      // Check if this looks like table content (has text between potential column positions)
+      // This handles cases where columns are separated by spacing/tabs rather than pipes
+      if (i > 0 && i < lines.length - 1) {
+        var prevLine = lines[i - 1].trim();
+        var nextLine = lines[i + 1].trim();
+
+        // Detect table header pattern
+        if (!trimmedLine.includes('|') && prevLine && nextLine &&
+            (prevLine.includes('\t') || prevLine.match(/\s{2,}/)) &&
+            (nextLine.includes('\t') || nextLine.match(/\s{2,}/))) {
+          // This might be a table without pipes - convert to pipe-delimited
+          var cells = trimmedLine.split(/\t+|\s{2,}/);
+          if (cells.length > 1) {
+            line = '| ' + cells.join(' | ') + ' |';
+
+            // Add header separator if this is the first row
+            if (!inTable) {
+              inTable = true;
+              result.push(line);
+              // Add separator row
+              var separator = '|' + cells.map(function(cell) {
+                return ' ' + '-'.repeat(Math.max(3, cell.length)) + ' ';
+              }).join('|') + '|';
+              result.push(separator);
+              continue;
+            }
+          }
+        }
+      }
+
+      // Clean up lines with pipes
+      if (trimmedLine.includes('|')) {
+        // Remove line breaks around pipes
+        line = line.replace(/\n\s*\|\s*\n/g, ' | ');
+        line = line.replace(/\n\s*\|/g, ' |');
+        line = line.replace(/\|\s*\n/g, '| ');
+        inTable = true;
+      } else if (inTable && trimmedLine === '') {
+        // Empty line might signal end of table
+        inTable = false;
+      }
+
+      result.push(line);
+    }
+
+    return result.join('\n');
+  };
+
   // http://pandoc.org/README.html#smart-punctuation
   var escape = function (str) {
     return str.replace(/[\u2018\u2019\u00b4]/g, "'")
@@ -176,7 +245,9 @@
   };
 
   var convert = function (str) {
-    return escape(turndownService.turndown(str));
+    var markdown = turndownService.turndown(str);
+    markdown = fixTablePipes(markdown);
+    return escape(markdown);
   }
 
   var insert = function (myField, myValue) {
@@ -209,7 +280,8 @@
     console.log('Version: 2.0.0');
     console.group('Dependencies:');
     console.log('• Turndown v7.2.1 (Markdown converter)');
-    console.log('• Bootstrap v3.3.6 (CSS framework)');
+    console.log('• Turndown Plugin GFM v1.0.2 (Table support)');
+    console.log('• Bootstrap v5.3.3 (CSS framework)');
     console.groupEnd();
     console.log('Repository: https://github.com/michaelstingl/clipboard2markdown');
 
@@ -218,6 +290,11 @@
       console.log('✓ Turndown loaded successfully');
     } else {
       console.error('✗ Turndown not found!');
+    }
+    if (typeof turndownPluginGfm !== 'undefined') {
+      console.log('✓ GFM Plugin loaded (table support enabled)');
+    } else {
+      console.warn('⚠ GFM Plugin not loaded (tables may not convert properly)');
     }
 
     var info = document.querySelector('#info');

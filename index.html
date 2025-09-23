@@ -7,9 +7,10 @@
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <link href="favicon.ico" rel="icon" type="image/x-icon">
         <link rel="stylesheet" href="bootstrap.css">
-        <script src="turndown.js"></script>
-        <script src="clipboard2markdown.js"></script>
         <style>
+            .hidden {
+                display: none !important;
+            }
             h2 {
                 font-size: 22px;
                 font-style: italic;
@@ -56,6 +57,9 @@
                 }
             }
         </style>
+        <script src="turndown.js"></script>
+        <script src="turndown-plugin-gfm.js"></script>
+        <script src="clipboard2markdown.js"></script>
     </head>
     <body>
         <div class="container">
@@ -75,7 +79,7 @@
             <div contenteditable="true" id="pastebin"></div>
             <section class="hidden" id="wrapper">
                 <div style="margin-bottom: 10px;">
-                    <button id="clear-btn" class="btn btn-default" title="Clear (Ctrl+L / ⌘+L)">Clear</button>
+                    <button id="clear-btn" class="btn btn-secondary" title="Clear (Ctrl+L / ⌘+L)">Clear</button>
                     <button id="download-btn" class="btn btn-primary" title="Download (Ctrl+S / ⌘+S)">Download Markdown</button>
                 </div>
                 <textarea id="output"></textarea>
