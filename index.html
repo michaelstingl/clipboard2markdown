@@ -42,11 +42,192 @@
                 resize: none;
                 width: 100%;
             }
+            /* Section Buttons */
+            #section-buttons {
+                margin-bottom: 15px;
+            }
+            .preset-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 10px;
+            }
+            .preset-label {
+                font-size: 14px;
+                color: #666;
+            }
+            .preset-select {
+                padding: 4px 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 14px;
+                background: white;
+            }
+            .section-buttons-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                align-items: center;
+            }
+            .section-btn {
+                position: relative;
+            }
+            .section-btn .shortcut-key {
+                display: inline-block;
+                background: rgba(0,0,0,0.1);
+                border-radius: 3px;
+                padding: 0 5px;
+                margin-right: 4px;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            #config-btn, #help-btn {
+                padding: 4px 10px;
+            }
+
+            /* Config Modal */
+            .modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 1000;
+            }
+            .config-modal {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                z-index: 1001;
+                width: 90%;
+                max-width: 500px;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            .config-modal h3 {
+                margin-top: 0;
+                margin-bottom: 16px;
+            }
+            .template-item {
+                background: #f5f5f5;
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 10px;
+            }
+            .template-row {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+            .template-row:last-child {
+                margin-bottom: 0;
+            }
+            .template-key {
+                width: 40px;
+                text-align: center;
+                font-weight: bold;
+            }
+            .template-label {
+                flex: 1;
+            }
+            .template-format {
+                flex: 1;
+                font-family: monospace;
+                font-size: 12px;
+            }
+            .modal-actions {
+                display: flex;
+                gap: 8px;
+                margin: 16px 0;
+            }
+            .preset-info {
+                font-size: 13px;
+                color: #666;
+                background: #f5f5f5;
+                padding: 8px 12px;
+                border-radius: 4px;
+                margin-bottom: 12px;
+            }
+            .preset-name-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+            .preset-name-row label {
+                font-weight: 500;
+                white-space: nowrap;
+            }
+            #preset-name-input {
+                flex: 1;
+                padding: 6px 10px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+            .modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #ddd;
+            }
+
+            /* Help Modal */
+            .help-modal {
+                max-width: 400px;
+            }
+            .shortcuts-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .shortcuts-table td {
+                padding: 8px 4px;
+                vertical-align: middle;
+            }
+            .shortcuts-table td:first-child {
+                white-space: nowrap;
+                text-align: right;
+                padding-right: 16px;
+                width: 40%;
+            }
+            .shortcut-divider {
+                border-bottom: 1px solid #ddd;
+                padding: 4px 0 !important;
+            }
+            .help-modal kbd {
+                display: inline-block;
+                background: #e8e8e8;
+                border: 1px solid #999;
+                border-radius: 4px;
+                padding: 2px 6px;
+                font-family: monospace;
+                font-size: 12px;
+                color: #333;
+                box-shadow: 0 1px 1px rgba(0,0,0,0.15);
+            }
+            .help-note {
+                font-size: 13px;
+                color: #666;
+                margin-top: 16px;
+                text-align: center;
+            }
+            #help-btn {
+                font-weight: bold;
+            }
+
             @media (prefers-color-scheme: dark) {
-                body { 
+                body {
                     background-image: url('background-dark.svg');
-                    background-color: #222; 
-                    color:white; 
+                    background-color: #222;
+                    color:white;
                 }
                 code {
                     color: #ff7a9c;
@@ -54,6 +235,54 @@
                 }
                 a {
                     color: #8fcbff;
+                }
+                .section-btn .shortcut-key {
+                    background: rgba(255,255,255,0.15);
+                }
+                .config-modal {
+                    background: #333;
+                    color: white;
+                }
+                .template-item {
+                    background: #444;
+                }
+                .template-key,
+                .template-label,
+                .template-format {
+                    background: #555;
+                    border: 1px solid #666;
+                    color: white;
+                }
+                .modal-footer {
+                    border-top-color: #555;
+                }
+                .help-modal kbd {
+                    background: #444;
+                    border-color: #666;
+                    color: white;
+                }
+                .shortcut-divider {
+                    border-bottom-color: #555;
+                }
+                .help-note {
+                    color: #aaa;
+                }
+                .preset-label {
+                    color: #aaa;
+                }
+                .preset-select {
+                    background: #444;
+                    border-color: #666;
+                    color: white;
+                }
+                .preset-info {
+                    background: #444;
+                    color: #ccc;
+                }
+                #preset-name-input {
+                    background: #555;
+                    border-color: #666;
+                    color: white;
                 }
             }
         </style>
@@ -69,13 +298,14 @@
                 <ol>
                     <li>Find the text to convert to Markdown (<i>e.g.</i>, in another browser tab)</li>
                     <li>Copy it to the clipboard (<code>Ctrl+C</code>, or <code>&#8984;+C</code> on Mac)</li>
-                    <li>Paste it into this window (<code>Ctrl+V</code>, or <code>&#8984;+V</code> on Mac)</li>
-                    <li>The converted Markdown will appear!</li>
+                    <li>Click a section button below or press <code>1</code>, <code>2</code>, <code>3</code> to paste with formatting</li>
+                    <li>Or paste directly (<code>Ctrl+V</code>) for plain append</li>
                     <li>Clear the output (<code>Ctrl+L</code>, or <code>&#8984;+L</code> on Mac)</li>
                     <li>Download as .md file (<code>Ctrl+S</code>, or <code>&#8984;+S</code> on Mac)</li>
                 </ol>
-                <p>The conversion is carried out by <a href="https://github.com/domchristie/to-markdown">to-markdown</a>, a Markdown converter written in JavaScript and running locally in the browser.</p>
+                <p>The conversion is carried out by <a href="https://github.com/domchristie/turndown">Turndown</a>, a Markdown converter written in JavaScript and running locally in the browser.</p>
             </section>
+            <div id="section-buttons"></div>
             <div contenteditable="true" id="pastebin"></div>
             <section class="hidden" id="wrapper">
                 <div style="margin-bottom: 10px;">

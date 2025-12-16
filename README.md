@@ -6,7 +6,7 @@ clipboard2markdown
 > Use the clipboard and paste to Markdown with a single keypress.
 >
 > The conversion is carried out by
-> [to-markdown](https://github.com/domchristie/to-markdown),
+> [Turndown](https://github.com/domchristie/turndown),
 > a Markdown converter running in the browser.
 
 Demo
@@ -14,43 +14,91 @@ Demo
 
 ### Interactive
 
-<http://euangoddard.github.io/clipboard2markdown/>
+<https://michaelstingl.github.io/clipboard2markdown/>
 
 ### Video
 
 ![Screencast](screencast.gif)
 
+Features
+--------
+
+### Template Presets
+
+Choose from built-in templates or create your own:
+
+- **Generic** - Heading, Section, Quote
+- **Azure DevOps** - Title, Description, Acceptance Criteria
+- **GitHub Issue** - Title, Problem, Steps to Reproduce, Expected Behavior
+- **Meeting Notes** - Title, Attendees, Discussion, Action Items
+
+Custom templates are saved in LocalStorage.
+
+### Section Buttons & Keyboard Shortcuts
+
+Click a section button or press a number key to paste with formatting:
+
+| Key | Action |
+|-----|--------|
+| `1`, `2`, `3`... | Paste as template section |
+| `Ctrl+V` / `Cmd+V` | Plain paste (append) |
+| `Ctrl+L` / `Cmd+L` | Clear output |
+| `Ctrl+S` / `Cmd+S` | Download as .md file |
+| `?` | Show keyboard shortcuts |
+
+### Multi-Paste Support
+
+Each paste is numbered with HTML comments for easy tracking:
+
+```markdown
+<!-- Paste #1: Title -->
+
+# My Document Title
+
+<!-- Paste #2: Description -->
+
+## Description
+
+The description text...
+```
+
 Usage
 -----
 
-Open [index.html](index.html) in a favorite browser and hit `Ctrl+C`
-(or `⌘+C` on Mac).
+1. Open the app in your browser
+2. Copy content from any source (e.g., Azure DevOps, Confluence, web pages)
+3. Select a template from the dropdown (optional)
+4. Click a section button or press `1`/`2`/`3` to paste with formatting
+5. Repeat for additional sections
+6. Download the combined Markdown with `Ctrl+S`
 
-To copy the converted Markdown to the clipboard, press `Ctrl+A`
-followed by `Ctrl+C` (or `⌘+A` and `⌘+C` on Mac).
+### Running Locally
 
-One can paste multiple times. This overwrites the previous conversion.
+Start a local web server:
 
-### Tested browsers
+```bash
+# Python 3
+python3 -m http.server 8000
 
--   Chrome 33 (Linux and OS X)
--   Firefox 27 (Linux)
--   Safari 5 (OS X)
--   Internet Explorer 11 (Windows)
+# Node.js
+npx http-server
+```
+
+Then open http://localhost:8000/ in your browser.
 
 About
 -----
 
 [clipboard2markdown](https://github.com/euangoddard/clipboard2markdown)
 was created by [Euan Goddard](https://github.com/euangoddard).
-The original version used
-[html2markdown](https://github.com/kates/html2markdown) by
-[Kates Gasis](https://github.com/kates) and
-[Himanshu Gilani](https://github.com/hgilani).
 [Vegard Øye](https://github.com/epsil) ported it to
 [to-markdown](https://github.com/domchristie/to-markdown) by
-[Dom Christie](https://github.com/domchristie). The HTML template
-is based on [Bootstrap](http://getbootstrap.com/).
+[Dom Christie](https://github.com/domchristie).
+[Michael Stingl](https://github.com/michaelstingl) migrated to
+[Turndown](https://github.com/domchristie/turndown) and added
+the template preset system.
+
+The HTML template is based on [Bootstrap](http://getbootstrap.com/).
 
 ### License
 

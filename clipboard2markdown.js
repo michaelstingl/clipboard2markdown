@@ -1,6 +1,151 @@
 (function () {
   'use strict';
 
+  // ===========================================
+  // Template Presets System
+  // ===========================================
+  var BUILTIN_PRESETS = {
+    'generic': {
+      name: 'Generic',
+      builtin: true,
+      templates: [
+        { key: '1', label: 'Heading', format: '# {content}' },
+        { key: '2', label: 'Section', format: '## {content}' },
+        { key: '3', label: 'Quote', format: '> {content}' }
+      ]
+    },
+    'azure-devops': {
+      name: 'Azure DevOps',
+      builtin: true,
+      templates: [
+        { key: '1', label: 'Title', format: '# {content}' },
+        { key: '2', label: 'Description', format: '## Description\n\n{content}' },
+        { key: '3', label: 'Acceptance Criteria', format: '## Acceptance Criteria\n\n{content}' }
+      ]
+    },
+    'github-issue': {
+      name: 'GitHub Issue',
+      builtin: true,
+      templates: [
+        { key: '1', label: 'Title', format: '# {content}' },
+        { key: '2', label: 'Problem', format: '## Problem\n\n{content}' },
+        { key: '3', label: 'Steps to Reproduce', format: '## Steps to Reproduce\n\n{content}' },
+        { key: '4', label: 'Expected Behavior', format: '## Expected Behavior\n\n{content}' }
+      ]
+    },
+    'meeting-notes': {
+      name: 'Meeting Notes',
+      builtin: true,
+      templates: [
+        { key: '1', label: 'Title', format: '# {content}' },
+        { key: '2', label: 'Attendees', format: '## Attendees\n\n{content}' },
+        { key: '3', label: 'Discussion', format: '## Discussion\n\n{content}' },
+        { key: '4', label: 'Action Items', format: '## Action Items\n\n{content}' }
+      ]
+    }
+  };
+
+  var STORAGE_KEY_ACTIVE = 'clipboard2markdown_active_preset';
+  var STORAGE_KEY_CUSTOM = 'clipboard2markdown_custom_presets';
+
+  function loadCustomPresets() {
+    try {
+      var stored = localStorage.getItem(STORAGE_KEY_CUSTOM);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Could not load custom presets from localStorage:', e);
+    }
+    return {};
+  }
+
+  function saveCustomPresets(presets) {
+    try {
+      localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(presets));
+    } catch (e) {
+      console.warn('Could not save custom presets to localStorage:', e);
+    }
+  }
+
+  function loadActivePresetId() {
+    try {
+      return localStorage.getItem(STORAGE_KEY_ACTIVE) || 'generic';
+    } catch (e) {
+      return 'generic';
+    }
+  }
+
+  function saveActivePresetId(id) {
+    try {
+      localStorage.setItem(STORAGE_KEY_ACTIVE, id);
+    } catch (e) {
+      console.warn('Could not save active preset:', e);
+    }
+  }
+
+  function getAllPresets() {
+    var custom = loadCustomPresets();
+    return Object.assign({}, BUILTIN_PRESETS, custom);
+  }
+
+  function getActivePreset() {
+    var allPresets = getAllPresets();
+    var activeId = loadActivePresetId();
+    return allPresets[activeId] || BUILTIN_PRESETS['generic'];
+  }
+
+  function createCustomPreset(id, name, templates) {
+    var custom = loadCustomPresets();
+    custom[id] = {
+      name: name,
+      builtin: false,
+      templates: templates
+    };
+    saveCustomPresets(custom);
+  }
+
+  function deleteCustomPreset(id) {
+    var custom = loadCustomPresets();
+    if (custom[id]) {
+      delete custom[id];
+      saveCustomPresets(custom);
+      // If deleted preset was active, switch to generic
+      if (loadActivePresetId() === id) {
+        saveActivePresetId('generic');
+      }
+    }
+  }
+
+  function generatePresetId(name) {
+    return 'custom-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
+  }
+
+  var activePresetId = loadActivePresetId();
+  var templates = getActivePreset().templates;
+
+  // ===========================================
+  // Paste Counter
+  // ===========================================
+  var pasteCounter = 0;
+
+  function getNextPasteNumber() {
+    pasteCounter++;
+    return pasteCounter;
+  }
+
+  function resetPasteCounter() {
+    pasteCounter = 0;
+  }
+
+  function formatPasteComment(num, label) {
+    if (label) {
+      return '<!-- Paste #' + num + ': ' + label + ' -->\n\n';
+    }
+    return '<!-- Paste #' + num + ' -->\n\n';
+  }
+
+  // ===========================================
   // Initialize Turndown service with custom rules
   var turndownService = new TurndownService({
     headingStyle: 'setext',
@@ -250,6 +395,384 @@
     return escape(markdown);
   }
 
+  // ===========================================
+  // Clipboard API: Read and paste with template
+  // ===========================================
+  async function pasteAsSection(template, output, wrapper, info) {
+    try {
+      // Try to read HTML from clipboard first
+      var html = '';
+      var plainText = '';
+
+      if (navigator.clipboard && navigator.clipboard.read) {
+        try {
+          var clipboardItems = await navigator.clipboard.read();
+          for (var item of clipboardItems) {
+            // Try HTML first
+            if (item.types.includes('text/html')) {
+              var blob = await item.getType('text/html');
+              html = await blob.text();
+            }
+            // Fallback to plain text
+            if (item.types.includes('text/plain')) {
+              var blob = await item.getType('text/plain');
+              plainText = await blob.text();
+            }
+          }
+        } catch (e) {
+          // Fallback to readText if read() fails
+          plainText = await navigator.clipboard.readText();
+        }
+      } else if (navigator.clipboard && navigator.clipboard.readText) {
+        plainText = await navigator.clipboard.readText();
+      } else {
+        throw new Error('Clipboard API not supported');
+      }
+
+      // Convert to markdown
+      var content = html ? convert(html) : plainText;
+
+      // Apply template format
+      var formatted = template.format.replace('{content}', content);
+
+      // Add paste comment with number and label
+      var pasteNum = getNextPasteNumber();
+      var pasteComment = formatPasteComment(pasteNum, template.label);
+
+      // Add separator if there's existing content
+      var separator = '';
+      if (output.value.trim().length > 0) {
+        separator = '\n\n';
+      }
+
+      // Move cursor to end and insert
+      output.selectionStart = output.value.length;
+      output.selectionEnd = output.value.length;
+      insert(output, separator + pasteComment + formatted);
+
+      // Show output area
+      info.classList.add('hidden');
+      wrapper.classList.remove('hidden');
+      output.focus();
+      output.selectionStart = output.value.length;
+      output.selectionEnd = output.value.length;
+
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+      alert('Could not read clipboard. Please use Ctrl+V to paste manually.\n\nError: ' + err.message);
+    }
+  }
+
+  // ===========================================
+  // Render section buttons dynamically
+  // ===========================================
+  function renderSectionButtons(container, output, wrapper, info, onPresetChange) {
+    container.innerHTML = '';
+
+    // Preset selector row
+    var presetRow = document.createElement('div');
+    presetRow.className = 'preset-row';
+
+    var presetLabel = document.createElement('span');
+    presetLabel.className = 'preset-label';
+    presetLabel.textContent = 'Template:';
+    presetRow.appendChild(presetLabel);
+
+    var presetSelect = document.createElement('select');
+    presetSelect.className = 'preset-select';
+    presetSelect.id = 'preset-select';
+
+    var allPresets = getAllPresets();
+    var activeId = loadActivePresetId();
+
+    // Group: Built-in
+    var builtinGroup = document.createElement('optgroup');
+    builtinGroup.label = 'Built-in';
+    Object.keys(BUILTIN_PRESETS).forEach(function(id) {
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = BUILTIN_PRESETS[id].name;
+      if (id === activeId) opt.selected = true;
+      builtinGroup.appendChild(opt);
+    });
+    presetSelect.appendChild(builtinGroup);
+
+    // Group: Custom (if any)
+    var customPresets = loadCustomPresets();
+    var customIds = Object.keys(customPresets);
+    if (customIds.length > 0) {
+      var customGroup = document.createElement('optgroup');
+      customGroup.label = 'Custom';
+      customIds.forEach(function(id) {
+        var opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = customPresets[id].name;
+        if (id === activeId) opt.selected = true;
+        customGroup.appendChild(opt);
+      });
+      presetSelect.appendChild(customGroup);
+    }
+
+    presetSelect.addEventListener('change', function() {
+      activePresetId = this.value;
+      saveActivePresetId(activePresetId);
+      templates = getActivePreset().templates;
+      if (onPresetChange) onPresetChange();
+    });
+
+    presetRow.appendChild(presetSelect);
+
+    // Config button
+    var configBtn = document.createElement('button');
+    configBtn.className = 'btn btn-outline-secondary btn-sm';
+    configBtn.id = 'config-btn';
+    configBtn.innerHTML = '⚙';
+    configBtn.title = 'Configure templates';
+    presetRow.appendChild(configBtn);
+
+    // Help button
+    var helpBtn = document.createElement('button');
+    helpBtn.className = 'btn btn-outline-secondary btn-sm';
+    helpBtn.id = 'help-btn';
+    helpBtn.innerHTML = '?';
+    helpBtn.title = 'Keyboard shortcuts (?)';
+    helpBtn.addEventListener('click', openHelpModal);
+    presetRow.appendChild(helpBtn);
+
+    container.appendChild(presetRow);
+
+    // Section buttons row
+    var buttonsRow = document.createElement('div');
+    buttonsRow.className = 'section-buttons-row';
+
+    templates.forEach(function(template) {
+      var btn = document.createElement('button');
+      btn.className = 'btn btn-outline-primary btn-sm section-btn';
+      btn.setAttribute('data-key', template.key);
+      btn.innerHTML = '<span class="shortcut-key">' + template.key + '</span> ' + template.label;
+      btn.title = 'Paste as ' + template.label + ' (or press ' + template.key + ')';
+      btn.addEventListener('click', function() {
+        pasteAsSection(template, output, wrapper, info);
+      });
+      buttonsRow.appendChild(btn);
+    });
+
+    container.appendChild(buttonsRow);
+  }
+
+  // ===========================================
+  // Help Modal
+  // ===========================================
+  function openHelpModal() {
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.id = 'help-modal-backdrop';
+
+    var modal = document.createElement('div');
+    modal.className = 'config-modal help-modal';
+    modal.id = 'help-modal';
+
+    var html = '<h3>Keyboard Shortcuts</h3>';
+    html += '<table class="shortcuts-table">';
+    html += '<tbody>';
+
+    // Section shortcuts
+    templates.forEach(function(t) {
+      html += '<tr><td><kbd>' + t.key + '</kbd></td><td>Paste as ' + t.label + '</td></tr>';
+    });
+
+    html += '<tr><td colspan="2" class="shortcut-divider"></td></tr>';
+
+    // General shortcuts
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Paste (plain append)</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Clear output</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Download as .md</td></tr>';
+    html += '<tr><td><kbd>?</kbd></td><td>Show this help</td></tr>';
+
+    html += '</tbody></table>';
+
+    html += '<p class="help-note">On Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd></p>';
+
+    html += '<div class="modal-footer">';
+    html += '<button class="btn btn-primary" id="close-help-btn">Close</button>';
+    html += '</div>';
+
+    modal.innerHTML = html;
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+
+    function closeModal() {
+      document.getElementById('help-modal').remove();
+      document.getElementById('help-modal-backdrop').remove();
+    }
+
+    document.getElementById('close-help-btn').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    // Close on Escape
+    var escHandler = function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+
+  // ===========================================
+  // Configuration Modal
+  // ===========================================
+  function openConfigModal(onSave) {
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.id = 'config-modal-backdrop';
+
+    var modal = document.createElement('div');
+    modal.className = 'config-modal';
+    modal.id = 'config-modal';
+
+    var currentPreset = getActivePreset();
+    var isBuiltin = currentPreset.builtin;
+
+    var html = '<h3>Edit Template: <span id="preset-name-display">' + escapeHtml(currentPreset.name) + '</span></h3>';
+
+    if (isBuiltin) {
+      html += '<p class="preset-info">This is a built-in template. Changes will be saved as a new custom template.</p>';
+    }
+
+    html += '<div class="preset-name-row">';
+    html += '<label>Template Name:</label>';
+    html += '<input type="text" id="preset-name-input" value="' + escapeHtml(isBuiltin ? currentPreset.name + ' (Custom)' : currentPreset.name) + '">';
+    html += '</div>';
+
+    html += '<div id="template-list"></div>';
+
+    html += '<div class="modal-actions">';
+    html += '<button class="btn btn-sm btn-outline-secondary" id="add-template-btn">+ Add Section</button>';
+    if (!isBuiltin) {
+      html += '<button class="btn btn-sm btn-outline-danger" id="delete-preset-btn">Delete Template</button>';
+    }
+    html += '</div>';
+
+    html += '<div class="modal-footer">';
+    html += '<button class="btn btn-secondary" id="cancel-config-btn">Cancel</button>';
+    html += '<button class="btn btn-primary" id="save-config-btn">' + (isBuiltin ? 'Save as New' : 'Save') + '</button>';
+    html += '</div>';
+
+    modal.innerHTML = html;
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+
+    var tempTemplates = JSON.parse(JSON.stringify(currentPreset.templates));
+
+    function renderTemplateList() {
+      var list = document.getElementById('template-list');
+      list.innerHTML = '';
+
+      tempTemplates.forEach(function(t, index) {
+        var item = document.createElement('div');
+        item.className = 'template-item';
+        item.innerHTML =
+          '<div class="template-row">' +
+            '<input type="text" class="template-key" value="' + escapeHtml(t.key) + '" placeholder="Key" maxlength="1">' +
+            '<input type="text" class="template-label" value="' + escapeHtml(t.label) + '" placeholder="Label">' +
+            '<button class="btn btn-sm btn-outline-danger delete-template-btn" data-index="' + index + '">✕</button>' +
+          '</div>' +
+          '<div class="template-row">' +
+            '<input type="text" class="template-format" value="' + escapeHtml(t.format) + '" placeholder="Format (use {content} as placeholder)">' +
+          '</div>';
+        list.appendChild(item);
+      });
+
+      list.querySelectorAll('.delete-template-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var idx = parseInt(this.getAttribute('data-index'));
+          tempTemplates.splice(idx, 1);
+          renderTemplateList();
+        });
+      });
+    }
+
+    renderTemplateList();
+
+    // Add section
+    document.getElementById('add-template-btn').addEventListener('click', function() {
+      var nextKey = (tempTemplates.length + 1).toString();
+      tempTemplates.push({ key: nextKey, label: 'New Section', format: '## New Section\n\n{content}' });
+      renderTemplateList();
+    });
+
+    // Delete preset (only for custom)
+    var deleteBtn = document.getElementById('delete-preset-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', function() {
+        if (confirm('Delete this custom template "' + currentPreset.name + '"?')) {
+          deleteCustomPreset(activePresetId);
+          activePresetId = 'generic';
+          templates = getActivePreset().templates;
+          closeModal();
+          onSave();
+        }
+      });
+    }
+
+    // Cancel
+    document.getElementById('cancel-config-btn').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    // Save
+    document.getElementById('save-config-btn').addEventListener('click', function() {
+      var items = document.querySelectorAll('.template-item');
+      var newTemplates = [];
+      items.forEach(function(item) {
+        var key = item.querySelector('.template-key').value.trim();
+        var label = item.querySelector('.template-label').value.trim();
+        var format = item.querySelector('.template-format').value;
+        if (key && label && format) {
+          newTemplates.push({ key: key, label: label, format: format });
+        }
+      });
+
+      var presetName = document.getElementById('preset-name-input').value.trim() || 'Custom Template';
+
+      if (isBuiltin) {
+        // Create new custom preset
+        var newId = generatePresetId(presetName);
+        createCustomPreset(newId, presetName, newTemplates);
+        activePresetId = newId;
+        saveActivePresetId(newId);
+      } else {
+        // Update existing custom preset
+        var custom = loadCustomPresets();
+        custom[activePresetId].name = presetName;
+        custom[activePresetId].templates = newTemplates;
+        saveCustomPresets(custom);
+      }
+
+      templates = newTemplates;
+      closeModal();
+      onSave();
+    });
+
+    function closeModal() {
+      document.getElementById('config-modal').remove();
+      document.getElementById('config-modal-backdrop').remove();
+    }
+
+    // Close on Escape
+    var escHandler = function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+
   var insert = function (myField, myValue) {
       if (document.selection) {
           myField.focus();
@@ -301,8 +824,51 @@
     var pastebin = document.querySelector('#pastebin');
     var output = document.querySelector('#output');
     var wrapper = document.querySelector('#wrapper');
+    var sectionButtons = document.querySelector('#section-buttons');
+
+    // Initialize section buttons
+    if (sectionButtons) {
+      function refreshButtons() {
+        renderSectionButtons(sectionButtons, output, wrapper, info, refreshButtons);
+      }
+      refreshButtons();
+
+      // Config button handler (delegated since button is dynamically created)
+      sectionButtons.addEventListener('click', function(e) {
+        if (e.target.id === 'config-btn' || e.target.closest('#config-btn')) {
+          openConfigModal(refreshButtons);
+        }
+      });
+    }
 
     document.addEventListener('keydown', function (event) {
+      // Number keys 1-9 for section paste, ? for help (only when no modifiers)
+      // Allow in #output textarea since it's for display, not typing
+      if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+        var key = event.key;
+        var target = event.target;
+        var isModalInput = target.closest('.config-modal') || target.closest('.help-modal');
+        var isOtherInput = (target.tagName === 'INPUT' || target.isContentEditable);
+
+        // Block shortcuts only in modal inputs and other input fields (not #output)
+        if (!isModalInput && !isOtherInput) {
+          // ? key for help
+          if (key === '?') {
+            event.preventDefault();
+            openHelpModal();
+            return;
+          }
+
+          // Number keys for section paste
+          var template = templates.find(function(t) { return t.key === key; });
+          if (template) {
+            event.preventDefault();
+            pasteAsSection(template, output, wrapper, info);
+            return;
+          }
+        }
+      }
+
       if (event.ctrlKey || event.metaKey) {
         var key = String.fromCharCode(event.which).toLowerCase();
 
@@ -316,6 +882,7 @@
           event.preventDefault();
           output.value = '';
           pastebin.innerHTML = '';
+          resetPasteCounter();
           info.classList.remove('hidden');
           wrapper.classList.add('hidden');
         } else if (key === 's' && !wrapper.classList.contains('hidden')) {
@@ -347,11 +914,28 @@
       setTimeout(function () {
         var html = pastebin.innerHTML;
         var markdown = convert(html);
-        // output.value = markdown;
-        insert(output, markdown);
+
+        // Add paste comment with number
+        var pasteNum = getNextPasteNumber();
+        var pasteComment = formatPasteComment(pasteNum);
+
+        // Add separator if there's existing content
+        var separator = '';
+        if (output.value.trim().length > 0) {
+          separator = '\n\n';
+        }
+
+        // Move cursor to end before inserting
+        output.selectionStart = output.value.length;
+        output.selectionEnd = output.value.length;
+
+        insert(output, separator + pasteComment + markdown);
         wrapper.classList.remove('hidden');
         output.focus();
-        output.select();
+
+        // Move cursor to end (not select all)
+        output.selectionStart = output.value.length;
+        output.selectionEnd = output.value.length;
       }, 200);
     });
 
@@ -361,6 +945,7 @@
       clearBtn.addEventListener('click', function () {
         output.value = '';
         pastebin.innerHTML = '';
+        resetPasteCounter();
         info.classList.remove('hidden');
         wrapper.classList.add('hidden');
       });
