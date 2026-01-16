@@ -34,15 +34,31 @@ Choose from built-in templates or create your own:
 
 Custom templates are saved in LocalStorage.
 
-### Section Buttons & Keyboard Shortcuts
+### Keyboard Shortcuts
 
-Click a section button or press a number key to paste with formatting:
+**Preset Switching** (Alt/Option + number):
+
+| Key | Action |
+|-----|--------|
+| `Alt+0` | Generic |
+| `Alt+1` | Azure DevOps |
+| `Alt+2` | GitHub Issue |
+| `Alt+3` | Meeting Notes |
+| `Alt+4`... | Custom presets |
+
+**Section Paste** (number key):
 
 | Key | Action |
 |-----|--------|
 | `1`, `2`, `3`... | Paste as template section |
+
+**General**:
+
+| Key | Action |
+|-----|--------|
+| `0` | Clear output |
 | `Ctrl+V` / `Cmd+V` | Plain paste (append) |
-| `Ctrl+L` / `Cmd+L` | Clear output |
+| `Ctrl+L` / `Cmd+L` | Clear output (alternative) |
 | `Ctrl+S` / `Cmd+S` | Download as .md file |
 | `?` | Show keyboard shortcuts |
 

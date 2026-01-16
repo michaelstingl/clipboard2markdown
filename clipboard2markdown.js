@@ -485,28 +485,30 @@
     var allPresets = getAllPresets();
     var activeId = loadActivePresetId();
 
-    // Group: Built-in
+    // Group: Built-in (with keyboard shortcuts)
     var builtinGroup = document.createElement('optgroup');
     builtinGroup.label = 'Built-in';
-    Object.keys(BUILTIN_PRESETS).forEach(function(id) {
+    var builtinIds = ['generic', 'azure-devops', 'github-issue', 'meeting-notes'];
+    builtinIds.forEach(function(id, index) {
       var opt = document.createElement('option');
       opt.value = id;
-      opt.textContent = BUILTIN_PRESETS[id].name;
+      opt.textContent = '[Alt+' + index + '] ' + BUILTIN_PRESETS[id].name;
       if (id === activeId) opt.selected = true;
       builtinGroup.appendChild(opt);
     });
     presetSelect.appendChild(builtinGroup);
 
-    // Group: Custom (if any)
+    // Group: Custom (if any, with keyboard shortcuts)
     var customPresets = loadCustomPresets();
     var customIds = Object.keys(customPresets);
     if (customIds.length > 0) {
       var customGroup = document.createElement('optgroup');
       customGroup.label = 'Custom';
-      customIds.forEach(function(id) {
+      customIds.forEach(function(id, index) {
         var opt = document.createElement('option');
         opt.value = id;
-        opt.textContent = customPresets[id].name;
+        var shortcutIndex = builtinIds.length + index;
+        opt.textContent = '[Alt+' + shortcutIndex + '] ' + customPresets[id].name;
         if (id === activeId) opt.selected = true;
         customGroup.appendChild(opt);
       });
@@ -573,25 +575,52 @@
     modal.id = 'help-modal';
 
     var html = '<h3>Keyboard Shortcuts</h3>';
+
+    // Preset shortcuts (Alt+0, Alt+1, etc.)
+    html += '<h4 class="shortcut-section-title">Preset Switching</h4>';
     html += '<table class="shortcuts-table">';
     html += '<tbody>';
 
-    // Section shortcuts
+    // Built-in presets
+    var builtinIds = ['generic', 'azure-devops', 'github-issue', 'meeting-notes'];
+    builtinIds.forEach(function(id, index) {
+      var preset = BUILTIN_PRESETS[id];
+      html += '<tr><td><kbd>Alt</kbd>+<kbd>' + index + '</kbd></td><td>' + preset.name + '</td></tr>';
+    });
+
+    // Custom presets
+    var customPresets = loadCustomPresets();
+    var customIds = Object.keys(customPresets);
+    customIds.forEach(function(id, index) {
+      var presetIndex = builtinIds.length + index;
+      html += '<tr><td><kbd>Alt</kbd>+<kbd>' + presetIndex + '</kbd></td><td>' + customPresets[id].name + '</td></tr>';
+    });
+
+    html += '</tbody></table>';
+
+    // Section shortcuts (1, 2, 3, etc.)
+    html += '<h4 class="shortcut-section-title">Section Paste (current preset)</h4>';
+    html += '<table class="shortcuts-table">';
+    html += '<tbody>';
+
     templates.forEach(function(t) {
       html += '<tr><td><kbd>' + t.key + '</kbd></td><td>Paste as ' + t.label + '</td></tr>';
     });
 
-    html += '<tr><td colspan="2" class="shortcut-divider"></td></tr>';
-
-    // General shortcuts
-    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Paste (plain append)</td></tr>';
-    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Clear output</td></tr>';
-    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Download as .md</td></tr>';
-    html += '<tr><td><kbd>?</kbd></td><td>Show this help</td></tr>';
-
     html += '</tbody></table>';
 
-    html += '<p class="help-note">On Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd></p>';
+    // General shortcuts
+    html += '<h4 class="shortcut-section-title">General</h4>';
+    html += '<table class="shortcuts-table">';
+    html += '<tbody>';
+    html += '<tr><td><kbd>0</kbd></td><td>Clear output</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Paste (plain append)</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Clear output (alternative)</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Download as .md</td></tr>';
+    html += '<tr><td><kbd>?</kbd></td><td>Show this help</td></tr>';
+    html += '</tbody></table>';
+
+    html += '<p class="help-note">On Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd> and <kbd>Option</kbd> instead of <kbd>Alt</kbd></p>';
 
     html += '<div class="modal-footer">';
     html += '<button class="btn btn-primary" id="close-help-btn">Close</button>';
@@ -842,7 +871,8 @@
     }
 
     document.addEventListener('keydown', function (event) {
-      // Number keys 1-9 for section paste, ? for help (only when no modifiers)
+      // 0 for clear, ? for help, 1-9 for section paste (no modifiers)
+      // Alt+0-9 for preset switching
       // Allow in #output textarea since it's for display, not typing
       if (!event.ctrlKey && !event.metaKey && !event.altKey) {
         var key = event.key;
@@ -859,12 +889,58 @@
             return;
           }
 
-          // Number keys for section paste
+          // 0 key for clear
+          if (key === '0') {
+            event.preventDefault();
+            output.value = '';
+            pastebin.innerHTML = '';
+            resetPasteCounter();
+            info.classList.remove('hidden');
+            wrapper.classList.add('hidden');
+            return;
+          }
+
+          // 1-9 for section paste (templates)
           var template = templates.find(function(t) { return t.key === key; });
           if (template) {
             event.preventDefault();
             pasteAsSection(template, output, wrapper, info);
             return;
+          }
+        }
+      }
+
+      // Alt+0-9 for preset switching
+      if (event.altKey && !event.ctrlKey && !event.metaKey) {
+        var target = event.target;
+        var isModalInput = target.closest('.config-modal') || target.closest('.help-modal');
+        var isOtherInput = (target.tagName === 'INPUT' || target.isContentEditable);
+
+        if (!isModalInput && !isOtherInput) {
+          // Alt+Zahl on macOS produces special characters, so use event.code
+          var key = event.key;
+          if (event.code && event.code.startsWith('Digit')) {
+            key = event.code.replace('Digit', '');
+          }
+
+          var presetIndex = parseInt(key);
+          if (!isNaN(presetIndex)) {
+            // All presets in fixed order: Built-in first, then Custom
+            var builtinIds = ['generic', 'azure-devops', 'github-issue', 'meeting-notes'];
+            var customPresets = loadCustomPresets();
+            var customIds = Object.keys(customPresets);
+            var allPresetIds = builtinIds.concat(customIds);
+
+            if (presetIndex >= 0 && presetIndex < allPresetIds.length) {
+              event.preventDefault();
+              var presetId = allPresetIds[presetIndex];
+              var presetSelect = document.getElementById('preset-select');
+              if (presetSelect) {
+                presetSelect.value = presetId;
+                presetSelect.dispatchEvent(new Event('change'));
+              }
+              return;
+            }
           }
         }
       }

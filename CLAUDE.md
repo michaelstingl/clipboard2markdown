@@ -51,7 +51,7 @@ IIFE
 │
 └── DOMContentLoaded (lines 819-999)
     ├── Section buttons initialization
-    ├── Keyboard event handlers (1-9, ?, Ctrl+V/L/S)
+    ├── Keyboard event handlers (1-9 for sections, Alt+0-9 for presets, 0/?/Ctrl+V/L/S)
     ├── Paste event handler
     └── Button click handlers (Clear, Download)
 ```
@@ -85,7 +85,7 @@ IIFE
 
 ### Clipboard API Flow
 
-1. User clicks section button or presses number key
+1. User clicks section button or presses number key (1-9)
 2. `pasteAsSection()` called with template
 3. `navigator.clipboard.read()` gets HTML (or fallback to `readText()`)
 4. HTML converted via `turndownService.turndown()`
@@ -123,12 +123,32 @@ The app uses setext-style headers (underlined) and custom rules for:
 
 ## Keyboard Shortcuts
 
+### Preset Switching
+
+| Key | Action |
+|-----|--------|
+| `Alt+0` | Switch to Generic preset |
+| `Alt+1` | Switch to Azure DevOps preset |
+| `Alt+2` | Switch to GitHub Issue preset |
+| `Alt+3` | Switch to Meeting Notes preset |
+| `Alt+4`, `Alt+5`... | Switch to custom presets (by creation order) |
+
+**Note for macOS**: `Alt+number` normally produces special characters (e.g., Alt+1 = ¡). The app intercepts these with `event.preventDefault()`.
+
+### Section Paste
+
 | Key | Action |
 |-----|--------|
 | `1`, `2`, `3`... | Paste as template section (auto-reads clipboard) |
+
+### General
+
+| Key | Action |
+|-----|--------|
+| `0` | Clear output and reset |
 | `?` | Show help modal |
 | `Ctrl/Cmd+V` | Traditional paste (plain append with `<!-- Paste #N -->`) |
-| `Ctrl/Cmd+L` | Clear output and reset |
+| `Ctrl/Cmd+L` | Clear output and reset (alternative) |
 | `Ctrl/Cmd+S` | Download as .md file |
 
 ## UI Components
