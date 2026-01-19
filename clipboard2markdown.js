@@ -1,9 +1,9 @@
-(function () {
-  'use strict';
+import TurndownService from 'turndown';
+import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gfm';
 
-  // ===========================================
-  // Template Presets System
-  // ===========================================
+// ===========================================
+// Template Presets System
+// ===========================================
   var BUILTIN_PRESETS = {
     'generic': {
       name: 'Generic',
@@ -157,10 +157,54 @@
     linkStyle: 'inlined'
   });
 
-  // Use GFM plugin for table support (if available)
-  if (typeof turndownPluginGfm !== 'undefined') {
-    turndownService.use(turndownPluginGfm.tables);
+  // Use GFM plugin for table support
+  turndownService.use([tables, strikethrough, taskListItems]);
+
+  // ===========================================
+  // HTML Pre-Processor for Office/Outlook content
+  // ===========================================
+  function cleanOfficeHtml(html) {
+    // Create a temporary DOM to work with
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+
+    // Remove Office-specific elements
+    var officeTags = doc.querySelectorAll('o\\:p, o\\:smarttagtype, xml, style');
+    officeTags.forEach(function(el) { el.remove(); });
+
+    // Remove Word bookmark spans
+    var bookmarkSpans = doc.querySelectorAll('span[style*="mso-bookmark"]');
+    bookmarkSpans.forEach(function(span) {
+      // Replace with text content
+      var text = document.createTextNode(span.textContent);
+      span.parentNode.replaceChild(text, span);
+    });
+
+    // Clean up spans with only mso-* styles (keep content)
+    var spans = doc.querySelectorAll('span');
+    spans.forEach(function(span) {
+      var style = span.getAttribute('style') || '';
+      // If span has only mso-* styles or font-family styles, unwrap it
+      if (style && !style.match(/(?:^|;)\s*(?:font-weight|font-style|text-decoration)\s*:/i)) {
+        // Check if it's purely presentational
+        var cleanStyle = style.replace(/mso-[^;]+;?/gi, '')
+                              .replace(/font-family:[^;]+;?/gi, '')
+                              .replace(/font-size:[^;]+;?/gi, '')
+                              .replace(/color:#333333;?/gi, '')
+                              .trim();
+        if (!cleanStyle) {
+          // Unwrap the span
+          while (span.firstChild) {
+            span.parentNode.insertBefore(span.firstChild, span);
+          }
+          span.remove();
+        }
+      }
+    });
+
+    return doc.body.innerHTML;
   }
+
 
   // Filter out nodes with only whitespace for cleaner output
   turndownService.addRule('whitespaceOnly', {
@@ -390,7 +434,9 @@
   };
 
   var convert = function (str) {
-    var markdown = turndownService.turndown(str);
+    // Pre-process Office/Outlook HTML
+    var cleanedHtml = cleanOfficeHtml(str);
+    var markdown = turndownService.turndown(cleanedHtml);
     markdown = fixTablePipes(markdown);
     return escape(markdown);
   }
@@ -829,25 +875,12 @@
   document.addEventListener('DOMContentLoaded', function () {
     // Log version info to console
     console.log('%c clipboard2markdown ', 'background: #222; color: #bada55; font-weight: bold; padding: 2px 5px; border-radius: 3px;');
-    console.log('Version: 2.0.0');
-    console.group('Dependencies:');
-    console.log('• Turndown v7.2.1 (Markdown converter)');
-    console.log('• Turndown Plugin GFM v1.0.2 (Table support)');
-    console.log('• Bootstrap v5.3.3 (CSS framework)');
+    console.log('Version: 2.1.0');
+    console.group('Dependencies (via npm):');
+    console.log('• turndown ^7.2.0');
+    console.log('• @joplin/turndown-plugin-gfm ^1.0.64');
     console.groupEnd();
     console.log('Repository: https://github.com/michaelstingl/clipboard2markdown');
-
-    // Check if libraries are available
-    if (typeof TurndownService !== 'undefined') {
-      console.log('✓ Turndown loaded successfully');
-    } else {
-      console.error('✗ Turndown not found!');
-    }
-    if (typeof turndownPluginGfm !== 'undefined') {
-      console.log('✓ GFM Plugin loaded (table support enabled)');
-    } else {
-      console.warn('⚠ GFM Plugin not loaded (tables may not convert properly)');
-    }
 
     var info = document.querySelector('#info');
     var pastebin = document.querySelector('#pastebin');
@@ -1052,4 +1085,3 @@
       });
     }
   });
-})();

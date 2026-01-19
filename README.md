@@ -90,17 +90,22 @@ Usage
 
 ### Running Locally
 
-Start a local web server:
-
 ```bash
-# Python 3
-python3 -m http.server 8000
+# Install dependencies
+bun install
 
-# Node.js
-npx http-server
+# Start dev server
+bun run dev
 ```
 
-Then open http://localhost:8000/ in your browser.
+Then open http://localhost:5173/clipboard2markdown/ in your browser.
+
+### Building for Production
+
+```bash
+bun run build    # Output in dist/
+bun run preview  # Preview production build
+```
 
 About
 -----

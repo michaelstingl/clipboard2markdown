@@ -1,0 +1,18 @@
+{
+  "name": "clipboard2markdown",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "turndown": "^7.2.0",
+    "@joplin/turndown-plugin-gfm": "^1.0.64"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

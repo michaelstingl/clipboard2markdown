@@ -5,8 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta charset="utf-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <link href="favicon.ico" rel="icon" type="image/x-icon">
-        <link rel="stylesheet" href="bootstrap.css">
+        <link href="/favicon.ico" rel="icon" type="image/x-icon">
+        <link rel="stylesheet" href="/bootstrap.css">
         <style>
             .hidden {
                 display: none !important;
@@ -17,7 +17,7 @@
             }
             body {
                 background-attachment: fixed;
-                background-image: url('background.svg');
+                background-image: url('/background.svg');
                 background-position: right 10% bottom 20%;
                 background-repeat: no-repeat;
                 background-size: 20em;
@@ -236,7 +236,7 @@
 
             @media (prefers-color-scheme: dark) {
                 body {
-                    background-image: url('background-dark.svg');
+                    background-image: url('/background-dark.svg');
                     background-color: #222;
                     color:white;
                 }
@@ -301,9 +301,7 @@
                 }
             }
         </style>
-        <script src="turndown.js"></script>
-        <script src="turndown-plugin-gfm.js"></script>
-        <script src="clipboard2markdown.js"></script>
+        <script type="module" src="clipboard2markdown.js"></script>
     </head>
     <body>
         <div class="container">

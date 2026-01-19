@@ -8,52 +8,70 @@ clipboard2markdown is a browser-based tool that converts rich HTML content to Ma
 
 ## Architecture
 
+### Build System
+
+- **Package Manager**: Bun
+- **Bundler**: Vite
+- **Deployment**: GitHub Actions → GitHub Pages
+
 ### Files
 
 | File | Purpose |
 |------|---------|
 | `index.html` | Main HTML with UI structure and CSS styles |
-| `clipboard2markdown.js` | Core application logic (~980 lines) |
-| `turndown.js` | Turndown library for HTML→Markdown conversion |
-| `turndown-plugin-gfm.js` | GFM plugin for table support |
-| `bootstrap.css` | Bootstrap 5.3.3 styling |
-| `background.svg` / `background-dark.svg` | Background images |
+| `clipboard2markdown.js` | Core application logic (ES Module) |
+| `public/bootstrap.css` | Bootstrap 5.3.3 styling |
+| `public/background.svg` | Light mode background |
+| `public/background-dark.svg` | Dark mode background |
+| `vite.config.js` | Vite configuration |
+| `package.json` | Dependencies and scripts |
+
+### Dependencies (via npm)
+
+| Package | Purpose |
+|---------|---------|
+| `turndown` | HTML → Markdown conversion |
+| `@joplin/turndown-plugin-gfm` | GFM support (tables, strikethrough, task lists) |
+| `vite` | Build tool (dev dependency) |
 
 ### clipboard2markdown.js Structure
 
 ```
-IIFE
-├── Template Presets System (lines 1-145)
+ES Module
+├── Imports (turndown, @joplin/turndown-plugin-gfm)
+├── Template Presets System
 │   ├── BUILTIN_PRESETS (generic, azure-devops, github-issue, meeting-notes)
 │   ├── LocalStorage functions (load/save presets, active preset)
 │   └── Preset management (create, delete, generate ID)
 │
-├── Paste Counter (lines 147-166)
+├── Paste Counter
 │   └── Numbered HTML comments for tracking pastes
 │
-├── Turndown Configuration (lines 168-416)
+├── Turndown Configuration
 │   ├── TurndownService initialization
+│   ├── GFM plugin (tables, strikethrough, taskListItems)
 │   ├── Custom rules (h1, h2, sup, sub, br, hr, emphasis, links, lists)
-│   └── Table pipe fixing, smart punctuation escape
+│   ├── Office HTML pre-processor (cleanOfficeHtml)
+│   └── Smart punctuation escape
 │
-├── Clipboard API (lines 418-484)
+├── Clipboard API
 │   └── pasteAsSection() - reads clipboard, converts, applies template
 │
-├── UI Rendering (lines 486-581)
+├── UI Rendering
 │   └── renderSectionButtons() - preset dropdown, section buttons
 │
-├── Modals (lines 583-794)
+├── Modals
 │   ├── openHelpModal() - keyboard shortcuts display
 │   └── openConfigModal() - template editing
 │
-├── Utility (lines 796-817)
+├── Utility
 │   └── insert() - textarea text insertion
 │
-└── DOMContentLoaded (lines 819-999)
+└── DOMContentLoaded
     ├── Section buttons initialization
-    ├── Keyboard event handlers (1-9 for sections, Alt+0-9 for presets, 0/?/Ctrl+V/L/S)
+    ├── Keyboard event handlers
     ├── Paste event handler
-    └── Button click handlers (Clear, Download)
+    └── Button click handlers
 ```
 
 ## Key Concepts
@@ -98,8 +116,10 @@ IIFE
 ### Running Locally
 
 ```bash
-python3 -m http.server 8000
-# Open http://localhost:8000/
+bun install     # Install dependencies
+bun run dev     # Start dev server → http://localhost:5173/clipboard2markdown/
+bun run build   # Production build → dist/
+bun run preview # Preview production build
 ```
 
 ### Key Functions
