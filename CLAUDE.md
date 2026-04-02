@@ -103,8 +103,8 @@ ES Module
 
 ### Clipboard API Flow
 
-1. User clicks section button or presses number key (1-9)
-2. `pasteAsSection()` called with template
+1. User clicks section button, presses number key (1-9), or Ctrl/Cmd+V
+2. `pasteAsSection()` called with template (or `{ format: '{content}' }` for plain paste)
 3. `navigator.clipboard.read()` gets HTML (or fallback to `readText()`)
 4. HTML converted via `turndownService.turndown()`
 5. Template format applied: `format.replace('{content}', markdown)`
@@ -167,8 +167,9 @@ The app uses setext-style headers (underlined) and custom rules for:
 |-----|--------|
 | `0` | Clear output and reset |
 | `?` | Show help modal |
-| `Ctrl/Cmd+V` | Traditional paste (plain append with `<!-- Paste #N -->`) |
-| `Ctrl/Cmd+L` | Clear output and reset (alternative) |
+| `Ctrl/Cmd+V` | Paste (plain append via Clipboard API) |
+| `Ctrl/Cmd+C` | Copy all output (when no text is selected) |
+| `Ctrl/Cmd+L` | Clear output and reset |
 | `Ctrl/Cmd+S` | Download as .md file |
 
 ## UI Components
@@ -178,7 +179,7 @@ The app uses setext-style headers (underlined) and custom rules for:
 - **Config button**: `#config-btn` (⚙) - opens template editor
 - **Help button**: `#help-btn` (?) - opens shortcuts modal
 - **Output**: `#output` textarea - displays/edits combined markdown
-- **Pastebin**: `#pastebin` contenteditable div - captures Ctrl+V paste events
+- **Pastebin**: `#pastebin` contenteditable div (legacy, no longer used for paste handling)
 
 ## Dark Mode
 

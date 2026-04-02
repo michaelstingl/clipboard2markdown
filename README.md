@@ -58,7 +58,8 @@ Custom templates are saved in LocalStorage.
 |-----|--------|
 | `0` | Clear output |
 | `Ctrl+V` / `Cmd+V` | Plain paste (append) |
-| `Ctrl+L` / `Cmd+L` | Clear output (alternative) |
+| `Ctrl+C` / `Cmd+C` | Copy all output (when no selection) |
+| `Ctrl+L` / `Cmd+L` | Clear output |
 | `Ctrl+S` / `Cmd+S` | Download as .md file |
 | `?` | Show keyboard shortcuts |
 

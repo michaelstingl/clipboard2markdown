@@ -661,7 +661,8 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
     html += '<tbody>';
     html += '<tr><td><kbd>0</kbd></td><td>Clear output</td></tr>';
     html += '<tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Paste (plain append)</td></tr>';
-    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Clear output (alternative)</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Copy all (when no selection)</td></tr>';
+    html += '<tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Clear output</td></tr>';
     html += '<tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Download as .md</td></tr>';
     html += '<tr><td><kbd>?</kbd></td><td>Show this help</td></tr>';
     html += '</tbody></table>';
@@ -679,6 +680,7 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
     function closeModal() {
       document.getElementById('help-modal').remove();
       document.getElementById('help-modal-backdrop').remove();
+      document.removeEventListener('keydown', escHandler);
     }
 
     document.getElementById('close-help-btn').addEventListener('click', closeModal);
@@ -688,7 +690,6 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
     var escHandler = function(e) {
       if (e.key === 'Escape') {
         closeModal();
-        document.removeEventListener('keydown', escHandler);
       }
     };
     document.addEventListener('keydown', escHandler);
@@ -836,13 +837,13 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
     function closeModal() {
       document.getElementById('config-modal').remove();
       document.getElementById('config-modal-backdrop').remove();
+      document.removeEventListener('keydown', escHandler);
     }
 
     // Close on Escape
     var escHandler = function(e) {
       if (e.key === 'Escape') {
         closeModal();
-        document.removeEventListener('keydown', escHandler);
       }
     };
     document.addEventListener('keydown', escHandler);
@@ -979,13 +980,20 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
       }
 
       if (event.ctrlKey || event.metaKey) {
-        var key = String.fromCharCode(event.which).toLowerCase();
+        var key = event.key.toLowerCase();
 
         if (key === 'v') {
-          pastebin.innerHTML = '';
-          pastebin.focus();
-          info.classList.add('hidden');
-          wrapper.classList.add('hidden');
+          // Paste via Clipboard API (same path as section paste, but without template)
+          event.preventDefault();
+          pasteAsSection({ format: '{content}' }, output, wrapper, info);
+        } else if (key === 'c' && !wrapper.classList.contains('hidden')) {
+          // Copy all output when nothing is selected
+          var hasTextareaSelection = output.selectionStart !== output.selectionEnd;
+          var hasPageSelection = window.getSelection().toString().length > 0;
+          if (!hasTextareaSelection && !hasPageSelection && output.value.trim()) {
+            event.preventDefault();
+            navigator.clipboard.writeText(output.value);
+          }
         } else if (key === 'l' && !wrapper.classList.contains('hidden')) {
           // Ctrl/Cmd+L to clear - return to initial screen
           event.preventDefault();
@@ -1019,35 +1027,6 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
       }
     });
 
-    pastebin.addEventListener('paste', function () {
-      setTimeout(function () {
-        var html = pastebin.innerHTML;
-        var markdown = convert(html);
-
-        // Add paste comment with number
-        var pasteNum = getNextPasteNumber();
-        var pasteComment = formatPasteComment(pasteNum);
-
-        // Add separator if there's existing content
-        var separator = '';
-        if (output.value.trim().length > 0) {
-          separator = '\n\n';
-        }
-
-        // Move cursor to end before inserting
-        output.selectionStart = output.value.length;
-        output.selectionEnd = output.value.length;
-
-        insert(output, separator + pasteComment + markdown);
-        wrapper.classList.remove('hidden');
-        output.focus();
-
-        // Move cursor to end (not select all)
-        output.selectionStart = output.value.length;
-        output.selectionEnd = output.value.length;
-      }, 200);
-    });
-
     // Clear button functionality - return to initial screen
     var clearBtn = document.querySelector('#clear-btn');
     if (clearBtn) {
@@ -1077,7 +1056,7 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
                        ('0' + now.getHours()).slice(-2) +
                        ('0' + now.getMinutes()).slice(-2) +
                        ('0' + now.getSeconds()).slice(-2);
-        a.download = 'markdown_' + timestamp + '.md';
+        a.download = 'clipboard2markdown_' + timestamp + '.md';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
