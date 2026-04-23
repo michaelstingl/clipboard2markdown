@@ -10,10 +10,7 @@ import {
   deleteCustomPreset,
   generatePresetId,
 } from './src/presets/index.js';
-import { cleanHtml } from './src/html/pipeline.js';
-import { fixTablePipes } from './src/post-process/fix-table-pipes.js';
-import { normalize } from './src/post-process/normalize.js';
-import { createTurndownService } from './src/turndown/service.js';
+import { convert } from './src/convert.js';
 
   var activePresetId = loadActivePresetId();
   var templates = getActivePreset().templates;
@@ -37,15 +34,6 @@ import { createTurndownService } from './src/turndown/service.js';
       return '<!-- Paste #' + num + ': ' + label + ' -->\n\n';
     }
     return '<!-- Paste #' + num + ' -->\n\n';
-  }
-
-  var turndownService = createTurndownService();
-
-  var convert = function (str) {
-    var cleanedHtml = cleanHtml(str);
-    var markdown = turndownService.turndown(cleanedHtml);
-    markdown = fixTablePipes(markdown);
-    return normalize(markdown);
   }
 
   // ===========================================
@@ -671,6 +659,3 @@ import { createTurndownService } from './src/turndown/service.js';
       });
     }
   });
-
-// Named export for tests. Phase 2 will replace this with src/convert.js.
-export { convert };

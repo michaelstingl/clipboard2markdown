@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { convert } from '../clipboard2markdown.js';
+import { convert } from '../src/convert.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
