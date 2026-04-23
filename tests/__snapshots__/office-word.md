@@ -4,4 +4,5 @@ Bookmark-Text verschwindet nicht.
 
 **Fett** und *kursiv*.
 
--   Listenpunkt eins-   Listenpunkt zwei
+-   Listenpunkt eins
+-   Listenpunkt zwei

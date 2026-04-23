@@ -1,3 +1,13 @@
+// Lines that look like markdown list items must not be rewritten as
+// table rows. The list-item prefix (`-   `, `1.  `, task list `- [x] `)
+// contains multiple whitespace and would otherwise trip the
+// tab-or-multispace-to-pipe heuristic below.
+const LIST_ITEM_RE = /^\s*(?:[-*+]|\d+\.)\s/;
+
+function looksLikeListItem(line) {
+  return LIST_ITEM_RE.test(line);
+}
+
 export function fixTablePipes(markdown) {
   const lines = markdown.split('\n');
   const result = [];
@@ -16,6 +26,9 @@ export function fixTablePipes(markdown) {
       const nextLine = lines[i + 1].trim();
 
       if (!trimmedLine.includes('|') && prevLine && nextLine &&
+          !looksLikeListItem(line) &&
+          !looksLikeListItem(lines[i - 1]) &&
+          !looksLikeListItem(lines[i + 1]) &&
           (prevLine.includes('\t') || prevLine.match(/\s{2,}/)) &&
           (nextLine.includes('\t') || nextLine.match(/\s{2,}/))) {
         const cells = trimmedLine.split(/\t+|\s{2,}/);

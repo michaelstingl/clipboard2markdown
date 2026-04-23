@@ -9,7 +9,9 @@ Verschachtelte Liste
 --------------------
 
 -   Erster Punkt
-    -   Sub-Punkt a-   Sub-Punkt b-   Zweiter Punkt
+    -   Sub-Punkt a
+    -   Sub-Punkt b
+-   Zweiter Punkt
 
 Tabelle
 -------

@@ -65,7 +65,11 @@ export function registerStructuralRules(turndownService) {
         }
       }
 
-      return prefix + content;
+      // Append a newline when another item follows, matching turndown's
+      // default listItem behaviour. Without this, sibling <li>s collapse
+      // onto one line.
+      const trailing = node.nextSibling && !/\n$/.test(content) ? '\n' : '';
+      return prefix + content + trailing;
     }
   });
 }

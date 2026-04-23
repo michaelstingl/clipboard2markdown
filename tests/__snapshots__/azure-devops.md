@@ -6,7 +6,9 @@ Als Service-Owner möchte ich einen Überblick über alle Migrations-Cluster hab
 Acceptance Criteria
 -------------------
 
--   Dashboard zeigt Cluster-Status pro Phase-   Filter nach Workstream funktioniert-   Daten-Stand ist sichtbar (Datum + Uhrzeit)
+-   Dashboard zeigt Cluster-Status pro Phase
+-   Filter nach Workstream funktioniert
+-   Daten-Stand ist sichtbar (Datum + Uhrzeit)
 
 Notes
 -----
