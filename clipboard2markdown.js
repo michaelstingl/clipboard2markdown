@@ -1,125 +1,20 @@
 import TurndownService from 'turndown';
 import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gfm';
-
-// ===========================================
-// Template Presets System
-// ===========================================
-  var BUILTIN_PRESETS = {
-    'generic': {
-      name: 'Generic',
-      builtin: true,
-      templates: [
-        { key: '1', label: 'Heading', format: '# {content}' },
-        { key: '2', label: 'Section', format: '## {content}' },
-        { key: '3', label: 'Quote', format: '> {content}' }
-      ]
-    },
-    'azure-devops': {
-      name: 'Azure DevOps',
-      builtin: true,
-      templates: [
-        { key: '1', label: 'Title', format: '# {content}' },
-        { key: '2', label: 'Description', format: '## Description\n\n{content}' },
-        { key: '3', label: 'Acceptance Criteria', format: '## Acceptance Criteria\n\n{content}' }
-      ]
-    },
-    'github-issue': {
-      name: 'GitHub Issue',
-      builtin: true,
-      templates: [
-        { key: '1', label: 'Title', format: '# {content}' },
-        { key: '2', label: 'Problem', format: '## Problem\n\n{content}' },
-        { key: '3', label: 'Steps to Reproduce', format: '## Steps to Reproduce\n\n{content}' },
-        { key: '4', label: 'Expected Behavior', format: '## Expected Behavior\n\n{content}' }
-      ]
-    },
-    'meeting-notes': {
-      name: 'Meeting Notes',
-      builtin: true,
-      templates: [
-        { key: '1', label: 'Title', format: '# {content}' },
-        { key: '2', label: 'Attendees', format: '## Attendees\n\n{content}' },
-        { key: '3', label: 'Discussion', format: '## Discussion\n\n{content}' },
-        { key: '4', label: 'Action Items', format: '## Action Items\n\n{content}' }
-      ]
-    }
-  };
-
-  var STORAGE_KEY_ACTIVE = 'clipboard2markdown_active_preset';
-  var STORAGE_KEY_CUSTOM = 'clipboard2markdown_custom_presets';
-
-  function loadCustomPresets() {
-    try {
-      var stored = localStorage.getItem(STORAGE_KEY_CUSTOM);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {
-      console.warn('Could not load custom presets from localStorage:', e);
-    }
-    return {};
-  }
-
-  function saveCustomPresets(presets) {
-    try {
-      localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(presets));
-    } catch (e) {
-      console.warn('Could not save custom presets to localStorage:', e);
-    }
-  }
-
-  function loadActivePresetId() {
-    try {
-      return localStorage.getItem(STORAGE_KEY_ACTIVE) || 'generic';
-    } catch (e) {
-      return 'generic';
-    }
-  }
-
-  function saveActivePresetId(id) {
-    try {
-      localStorage.setItem(STORAGE_KEY_ACTIVE, id);
-    } catch (e) {
-      console.warn('Could not save active preset:', e);
-    }
-  }
-
-  function getAllPresets() {
-    var custom = loadCustomPresets();
-    return Object.assign({}, BUILTIN_PRESETS, custom);
-  }
-
-  function getActivePreset() {
-    var allPresets = getAllPresets();
-    var activeId = loadActivePresetId();
-    return allPresets[activeId] || BUILTIN_PRESETS['generic'];
-  }
-
-  function createCustomPreset(id, name, templates) {
-    var custom = loadCustomPresets();
-    custom[id] = {
-      name: name,
-      builtin: false,
-      templates: templates
-    };
-    saveCustomPresets(custom);
-  }
-
-  function deleteCustomPreset(id) {
-    var custom = loadCustomPresets();
-    if (custom[id]) {
-      delete custom[id];
-      saveCustomPresets(custom);
-      // If deleted preset was active, switch to generic
-      if (loadActivePresetId() === id) {
-        saveActivePresetId('generic');
-      }
-    }
-  }
-
-  function generatePresetId(name) {
-    return 'custom-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
-  }
+import {
+  BUILTIN_PRESETS,
+  loadCustomPresets,
+  saveCustomPresets,
+  loadActivePresetId,
+  saveActivePresetId,
+  getAllPresets,
+  getActivePreset,
+  createCustomPreset,
+  deleteCustomPreset,
+  generatePresetId,
+} from './src/presets/index.js';
+import { cleanHtml } from './src/html/pipeline.js';
+import { fixTablePipes } from './src/post-process/fix-table-pipes.js';
+import { normalize } from './src/post-process/normalize.js';
 
   var activePresetId = loadActivePresetId();
   var templates = getActivePreset().templates;
@@ -159,88 +54,6 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
 
   // Use GFM plugin for table support
   turndownService.use([tables, strikethrough, taskListItems]);
-
-  // ===========================================
-  // HTML Pre-Processor Pipeline
-  // ===========================================
-  // Detects the paste source (office, confluence, generic) and applies
-  // source-specific DOM cleanup before passing the HTML to turndown.
-
-  function detectSource(doc) {
-    if (doc.querySelector('ul.inline-task-list, [data-inline-tasks-content-id], .confluenceTable, .confluence-embedded-file-wrapper')) {
-      return 'confluence';
-    }
-    if (doc.querySelector('o\\:p, [style*="mso-"], .MsoNormal, xml')) {
-      return 'office';
-    }
-    return 'generic';
-  }
-
-  function applyOfficeCleanup(doc) {
-    var officeTags = doc.querySelectorAll('o\\:p, o\\:smarttagtype, xml, style');
-    officeTags.forEach(function(el) { el.remove(); });
-
-    var bookmarkSpans = doc.querySelectorAll('span[style*="mso-bookmark"]');
-    bookmarkSpans.forEach(function(span) {
-      var text = doc.createTextNode(span.textContent);
-      span.parentNode.replaceChild(text, span);
-    });
-
-    var spans = doc.querySelectorAll('span');
-    spans.forEach(function(span) {
-      var style = span.getAttribute('style') || '';
-      if (style && !style.match(/(?:^|;)\s*(?:font-weight|font-style|text-decoration)\s*:/i)) {
-        var cleanStyle = style.replace(/mso-[^;]+;?/gi, '')
-                              .replace(/font-family:[^;]+;?/gi, '')
-                              .replace(/font-size:[^;]+;?/gi, '')
-                              .replace(/color:#333333;?/gi, '')
-                              .trim();
-        if (!cleanStyle) {
-          while (span.firstChild) {
-            span.parentNode.insertBefore(span.firstChild, span);
-          }
-          span.remove();
-        }
-      }
-    });
-  }
-
-  function applyConfluenceCleanup(doc) {
-    // Confluence Server renders task lists as <ul class="inline-task-list">
-    // with <li class="checked"> (done) or <li> (open). Inject a real
-    // <input type="checkbox"> so the turndown-gfm taskListItems rule picks
-    // them up as GFM checkboxes.
-    var taskLists = doc.querySelectorAll('ul.inline-task-list');
-    taskLists.forEach(function(ul) {
-      var items = ul.querySelectorAll(':scope > li');
-      items.forEach(function(li) {
-        var isChecked = li.classList.contains('checked');
-        var checkbox = doc.createElement('input');
-        checkbox.setAttribute('type', 'checkbox');
-        if (isChecked) {
-          checkbox.setAttribute('checked', '');
-          li.classList.remove('checked');
-        }
-        li.insertBefore(checkbox, li.firstChild);
-      });
-      ul.classList.remove('inline-task-list');
-    });
-  }
-
-  var CLEANERS = {
-    office: applyOfficeCleanup,
-    confluence: applyConfluenceCleanup,
-  };
-
-  function cleanHtml(html) {
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(html, 'text/html');
-    var source = detectSource(doc);
-    var cleaner = CLEANERS[source];
-    if (cleaner) cleaner(doc);
-    return doc.body.innerHTML;
-  }
-
 
   // Filter out nodes with only whitespace for cleaner output
   turndownService.addRule('whitespaceOnly', {
@@ -386,94 +199,11 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
     }
   });
 
-  // Fix and enhance table conversion
-  var fixTablePipes = function(markdown) {
-    var lines = markdown.split('\n');
-    var result = [];
-    var potentialTableRows = [];
-    var inTable = false;
-
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      var trimmedLine = line.trim();
-
-      // Skip standalone pipe characters
-      if (trimmedLine === '|') {
-        continue;
-      }
-
-      // Check if this looks like table content (has text between potential column positions)
-      // This handles cases where columns are separated by spacing/tabs rather than pipes
-      if (i > 0 && i < lines.length - 1) {
-        var prevLine = lines[i - 1].trim();
-        var nextLine = lines[i + 1].trim();
-
-        // Detect table header pattern
-        if (!trimmedLine.includes('|') && prevLine && nextLine &&
-            (prevLine.includes('\t') || prevLine.match(/\s{2,}/)) &&
-            (nextLine.includes('\t') || nextLine.match(/\s{2,}/))) {
-          // This might be a table without pipes - convert to pipe-delimited
-          var cells = trimmedLine.split(/\t+|\s{2,}/);
-          if (cells.length > 1) {
-            line = '| ' + cells.join(' | ') + ' |';
-
-            // Add header separator if this is the first row
-            if (!inTable) {
-              inTable = true;
-              result.push(line);
-              // Add separator row
-              var separator = '|' + cells.map(function(cell) {
-                return ' ' + '-'.repeat(Math.max(3, cell.length)) + ' ';
-              }).join('|') + '|';
-              result.push(separator);
-              continue;
-            }
-          }
-        }
-      }
-
-      // Clean up lines with pipes
-      if (trimmedLine.includes('|')) {
-        // Remove line breaks around pipes
-        line = line.replace(/\n\s*\|\s*\n/g, ' | ');
-        line = line.replace(/\n\s*\|/g, ' |');
-        line = line.replace(/\|\s*\n/g, '| ');
-        inTable = true;
-      } else if (inTable && trimmedLine === '') {
-        // Empty line might signal end of table
-        inTable = false;
-      }
-
-      result.push(line);
-    }
-
-    return result.join('\n');
-  };
-
-  // http://pandoc.org/README.html#smart-punctuation
-  var escape = function (str) {
-    return str.replace(/[\u2018\u2019\u00b4]/g, "'")
-              .replace(/[\u201c\u201d\u2033]/g, '"')
-              .replace(/[\u2212\u2022\u00b7\u25aa]/g, '-')
-              .replace(/[\u2013\u2015]/g, '--')
-              .replace(/\u2014/g, '---')
-              .replace(/\u2026/g, '...')
-              .replace(/[ ]+\n/g, '\n')
-              .replace(/\s*\\\n/g, '\\\n')
-              .replace(/\s*\\\n\s*\\\n/g, '\n\n')
-              .replace(/\s*\\\n\n/g, '\n\n')
-              .replace(/\n-\n/g, '\n')
-              .replace(/\n\n\s*\\\n/g, '\n\n')
-              .replace(/\n\n\n*/g, '\n\n')
-              .replace(/[ ]+$/gm, '')
-              .replace(/^\s+|[\s\\]+$/g, '');
-  };
-
   var convert = function (str) {
     var cleanedHtml = cleanHtml(str);
     var markdown = turndownService.turndown(cleanedHtml);
     markdown = fixTablePipes(markdown);
-    return escape(markdown);
+    return normalize(markdown);
   }
 
   // ===========================================
