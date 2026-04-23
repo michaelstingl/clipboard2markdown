@@ -1,5 +1,3 @@
-import TurndownService from 'turndown';
-import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gfm';
 import {
   BUILTIN_PRESETS,
   loadCustomPresets,
@@ -15,6 +13,7 @@ import {
 import { cleanHtml } from './src/html/pipeline.js';
 import { fixTablePipes } from './src/post-process/fix-table-pipes.js';
 import { normalize } from './src/post-process/normalize.js';
+import { createTurndownService } from './src/turndown/service.js';
 
   var activePresetId = loadActivePresetId();
   var templates = getActivePreset().templates;
@@ -40,164 +39,7 @@ import { normalize } from './src/post-process/normalize.js';
     return '<!-- Paste #' + num + ' -->\n\n';
   }
 
-  // ===========================================
-  // Initialize Turndown service with custom rules
-  var turndownService = new TurndownService({
-    headingStyle: 'setext',
-    hr: '* * * * *',
-    bulletListMarker: '-',
-    codeBlockStyle: 'fenced',
-    emDelimiter: '*',
-    strongDelimiter: '**',
-    linkStyle: 'inlined'
-  });
-
-  // Use GFM plugin for table support
-  turndownService.use([tables, strikethrough, taskListItems]);
-
-  // Filter out nodes with only whitespace for cleaner output
-  turndownService.addRule('whitespaceOnly', {
-    filter: function(node) {
-      return node.nodeType === 3 && !node.textContent.trim();
-    },
-    replacement: function() {
-      return '';
-    }
-  });
-
-  // Add custom rules for Pandoc-style markdown
-  turndownService.addRule('h1', {
-    filter: 'h1',
-    replacement: function (content, node) {
-      var underline = Array(content.length + 1).join('=');
-      return '\n\n' + content + '\n' + underline + '\n\n';
-    }
-  });
-
-  turndownService.addRule('h2', {
-    filter: 'h2',
-    replacement: function (content, node) {
-      var underline = Array(content.length + 1).join('-');
-      return '\n\n' + content + '\n' + underline + '\n\n';
-    }
-  });
-
-  turndownService.addRule('sup', {
-    filter: 'sup',
-    replacement: function (content) {
-      return '^' + content + '^';
-    }
-  });
-
-  turndownService.addRule('sub', {
-    filter: 'sub',
-    replacement: function (content) {
-      return '~' + content + '~';
-    }
-  });
-
-  turndownService.addRule('br', {
-    filter: 'br',
-    replacement: function () {
-      return '\\\n';
-    }
-  });
-
-  turndownService.addRule('hr', {
-    filter: 'hr',
-    replacement: function () {
-      return '\n\n* * * * *\n\n';
-    }
-  });
-
-  // Override emphasis to handle spaces properly
-  turndownService.addRule('emphasisWithSpaces', {
-    filter: ['em', 'i', 'cite', 'var'],
-    replacement: function (content) {
-      if (!content.trim()) return '';
-      // Move leading/trailing spaces outside of markdown syntax
-      var leadingSpace = content.match(/^\s+/) ? content.match(/^\s+/)[0] : '';
-      var trailingSpace = content.match(/\s+$/) ? content.match(/\s+$/)[0] : '';
-      if (leadingSpace || trailingSpace) {
-        content = content.trim();
-      }
-      return leadingSpace + '*' + content + '*' + trailingSpace;
-    }
-  });
-
-  // Override strong to handle spaces properly (includes <b> tags)
-  turndownService.addRule('strongWithSpaces', {
-    filter: ['strong', 'b'],
-    replacement: function (content) {
-      if (!content.trim()) return '';
-      // Move leading/trailing spaces outside of markdown syntax
-      var leadingSpace = content.match(/^\s+/) ? content.match(/^\s+/)[0] : '';
-      var trailingSpace = content.match(/\s+$/) ? content.match(/\s+$/)[0] : '';
-      if (leadingSpace || trailingSpace) {
-        content = content.trim();
-      }
-      return leadingSpace + '**' + content + '**' + trailingSpace;
-    }
-  });
-
-  turndownService.addRule('kbd-samp-tt', {
-    filter: function (node) {
-      var isCodeElem = node.nodeName === 'KBD' ||
-          node.nodeName === 'SAMP' ||
-          node.nodeName === 'TT';
-      return isCodeElem;
-    },
-    replacement: function (content) {
-      return '`' + content + '`';
-    }
-  });
-
-  turndownService.addRule('link', {
-    filter: function (node) {
-      return node.nodeName === 'A' && node.getAttribute('href');
-    },
-    replacement: function (content, node) {
-      // Move leading/trailing spaces outside of markdown syntax
-      var leadingSpace = content.match(/^\s+/) ? content.match(/^\s+/)[0] : '';
-      var trailingSpace = content.match(/\s+$/) ? content.match(/\s+$/)[0] : '';
-      if (leadingSpace || trailingSpace) {
-        content = content.trim();
-      }
-
-      var url = node.getAttribute('href');
-      var titlePart = node.title ? ' "' + node.title + '"' : '';
-      var linkMarkdown;
-
-      if (content === url) {
-        linkMarkdown = '<' + url + '>';
-      } else if (url === ('mailto:' + content)) {
-        linkMarkdown = '<' + content + '>';
-      } else {
-        linkMarkdown = '[' + content + '](' + url + titlePart + ')';
-      }
-
-      return leadingSpace + linkMarkdown + trailingSpace;
-    }
-  });
-
-  turndownService.addRule('listItem', {
-    filter: 'li',
-    replacement: function (content, node) {
-      content = content.replace(/^\s+/, '').replace(/\n/gm, '\n    ');
-      var prefix = '-   ';
-      var parent = node.parentNode;
-
-      if (/ol/i.test(parent.nodeName)) {
-        var index = Array.prototype.indexOf.call(parent.children, node) + 1;
-        prefix = index + '. ';
-        while (prefix.length < 4) {
-          prefix += ' ';
-        }
-      }
-
-      return prefix + content;
-    }
-  });
+  var turndownService = createTurndownService();
 
   var convert = function (str) {
     var cleanedHtml = cleanHtml(str);
