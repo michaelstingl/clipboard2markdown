@@ -52,5 +52,3 @@ Zeile drei.
 ### Leere Elemente
 
 Danach kommt wieder Text.
-
-alert('should be stripped'); body { color: red; }
