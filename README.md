@@ -57,11 +57,30 @@ Custom templates are saved in LocalStorage.
 | Key | Action |
 |-----|--------|
 | `0` | Clear output |
+| `R` | Download raw clipboard as JSON (debug) |
 | `Ctrl+V` / `Cmd+V` | Plain paste (append) |
 | `Ctrl+C` / `Cmd+C` | Copy all output (when no selection) |
 | `Ctrl+L` / `Cmd+L` | Clear output |
 | `Ctrl+S` / `Cmd+S` | Download as .md file |
 | `?` | Show keyboard shortcuts |
+
+### Source detection
+
+The paste preprocessor sniffs the HTML and applies source-specific
+cleanup before conversion — Office/Outlook bookmark spans and `mso-*`
+styles are stripped, and Confluence task lists (`<ul
+class="inline-task-list">`) are rewritten to GFM `- [x]` / `- [ ]`
+checkboxes so the checkbox state survives the copy.
+
+### Raw clipboard capture
+
+Press `R` (or click the `⬇` button) to download a
+`capture-<timestamp>.json` containing every MIME-type the browser
+exposes on the clipboard, each one with a decoded UTF-8 string and a
+raw-byte hex dump. Intended for diagnosing encoding quirks (BOMs,
+zero-width characters, smart-quote encodings) and for building test
+fixtures from real paste sources. The capture contains the clipboard
+contents as-is — use for debugging only.
 
 ### Multi-Paste Support
 
@@ -108,17 +127,47 @@ bun run build    # Output in dist/
 bun run preview  # Preview production build
 ```
 
+### Testing
+
+```bash
+bun run test        # Vitest (jsdom) — runs convert() + captureRaw() against fixtures
+bun run test:watch  # Watch mode
+```
+
+Snapshot fixtures live in `tests/fixtures/` and cover the main paste
+sources (Office/Word, Confluence task list, Confluence table, GitHub
+issue, Azure DevOps, plain HTML). Real clipboard samples can be
+collected via the raw capture (`R`) and converted into fixtures.
+
+Project layout
+--------------
+
+```
+src/
+  main.js              — boot, DOM wiring
+  convert.js           — public convert() entrypoint
+  presets/             — builtin + localStorage CRUD
+  html/                — source detection + office/confluence cleaners
+  turndown/            — service factory + rules/{headings,inline,structural}
+  post-process/        — fixTablePipes + normalize
+  clipboard/           — pasteAsSection, captureRaw
+  keyboard.js          — single keydown dispatcher
+  ui/                  — modals, buttons, insert, clear, download
+```
+
 About
 -----
 
+This project descends from
 [clipboard2markdown](https://github.com/euangoddard/clipboard2markdown)
-was created by [Euan Goddard](https://github.com/euangoddard).
+by [Euan Goddard](https://github.com/euangoddard).
 [Vegard Øye](https://github.com/epsil) ported it to
 [to-markdown](https://github.com/domchristie/to-markdown) by
 [Dom Christie](https://github.com/domchristie).
-[Michael Stingl](https://github.com/michaelstingl) migrated to
-[Turndown](https://github.com/domchristie/turndown) and added
-the template preset system.
+This rewrite by [Michael Stingl](https://github.com/michaelstingl)
+migrated to [Turndown](https://github.com/domchristie/turndown),
+added the template preset system, the source-detection pipeline, the
+raw clipboard capture, and a Vitest + jsdom snapshot test suite.
 
 The HTML template is based on [Bootstrap](http://getbootstrap.com/).
 
