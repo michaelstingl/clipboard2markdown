@@ -161,39 +161,41 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
   turndownService.use([tables, strikethrough, taskListItems]);
 
   // ===========================================
-  // HTML Pre-Processor for Office/Outlook content
+  // HTML Pre-Processor Pipeline
   // ===========================================
-  function cleanOfficeHtml(html) {
-    // Create a temporary DOM to work with
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(html, 'text/html');
+  // Detects the paste source (office, confluence, generic) and applies
+  // source-specific DOM cleanup before passing the HTML to turndown.
 
-    // Remove Office-specific elements
+  function detectSource(doc) {
+    if (doc.querySelector('ul.inline-task-list, [data-inline-tasks-content-id], .confluenceTable, .confluence-embedded-file-wrapper')) {
+      return 'confluence';
+    }
+    if (doc.querySelector('o\\:p, [style*="mso-"], .MsoNormal, xml')) {
+      return 'office';
+    }
+    return 'generic';
+  }
+
+  function applyOfficeCleanup(doc) {
     var officeTags = doc.querySelectorAll('o\\:p, o\\:smarttagtype, xml, style');
     officeTags.forEach(function(el) { el.remove(); });
 
-    // Remove Word bookmark spans
     var bookmarkSpans = doc.querySelectorAll('span[style*="mso-bookmark"]');
     bookmarkSpans.forEach(function(span) {
-      // Replace with text content
-      var text = document.createTextNode(span.textContent);
+      var text = doc.createTextNode(span.textContent);
       span.parentNode.replaceChild(text, span);
     });
 
-    // Clean up spans with only mso-* styles (keep content)
     var spans = doc.querySelectorAll('span');
     spans.forEach(function(span) {
       var style = span.getAttribute('style') || '';
-      // If span has only mso-* styles or font-family styles, unwrap it
       if (style && !style.match(/(?:^|;)\s*(?:font-weight|font-style|text-decoration)\s*:/i)) {
-        // Check if it's purely presentational
         var cleanStyle = style.replace(/mso-[^;]+;?/gi, '')
                               .replace(/font-family:[^;]+;?/gi, '')
                               .replace(/font-size:[^;]+;?/gi, '')
                               .replace(/color:#333333;?/gi, '')
                               .trim();
         if (!cleanStyle) {
-          // Unwrap the span
           while (span.firstChild) {
             span.parentNode.insertBefore(span.firstChild, span);
           }
@@ -201,7 +203,41 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
         }
       }
     });
+  }
 
+  function applyConfluenceCleanup(doc) {
+    // Confluence Server renders task lists as <ul class="inline-task-list">
+    // with <li class="checked"> (done) or <li> (open). Inject a real
+    // <input type="checkbox"> so the turndown-gfm taskListItems rule picks
+    // them up as GFM checkboxes.
+    var taskLists = doc.querySelectorAll('ul.inline-task-list');
+    taskLists.forEach(function(ul) {
+      var items = ul.querySelectorAll(':scope > li');
+      items.forEach(function(li) {
+        var isChecked = li.classList.contains('checked');
+        var checkbox = doc.createElement('input');
+        checkbox.setAttribute('type', 'checkbox');
+        if (isChecked) {
+          checkbox.setAttribute('checked', '');
+          li.classList.remove('checked');
+        }
+        li.insertBefore(checkbox, li.firstChild);
+      });
+      ul.classList.remove('inline-task-list');
+    });
+  }
+
+  var CLEANERS = {
+    office: applyOfficeCleanup,
+    confluence: applyConfluenceCleanup,
+  };
+
+  function cleanHtml(html) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var source = detectSource(doc);
+    var cleaner = CLEANERS[source];
+    if (cleaner) cleaner(doc);
     return doc.body.innerHTML;
   }
 
@@ -434,8 +470,7 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
   };
 
   var convert = function (str) {
-    // Pre-process Office/Outlook HTML
-    var cleanedHtml = cleanOfficeHtml(str);
+    var cleanedHtml = cleanHtml(str);
     var markdown = turndownService.turndown(cleanedHtml);
     markdown = fixTablePipes(markdown);
     return escape(markdown);
