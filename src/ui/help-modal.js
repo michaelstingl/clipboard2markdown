@@ -40,6 +40,7 @@ export function openHelpModal() {
   html += '<h4 class="shortcut-section-title">General</h4>';
   html += '<table class="shortcuts-table"><tbody>';
   html += '<tr><td><kbd>0</kbd></td><td>Clear output</td></tr>';
+  html += '<tr><td><kbd>R</kbd></td><td>Download raw clipboard (debug)</td></tr>';
   html += '<tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Paste (plain append)</td></tr>';
   html += '<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Copy all (when no selection)</td></tr>';
   html += '<tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Clear output</td></tr>';

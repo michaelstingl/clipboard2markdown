@@ -6,6 +6,7 @@ import {
   loadCustomPresets,
 } from '../presets/index.js';
 import { openHelpModal } from './help-modal.js';
+import { downloadRawCapture } from './capture-button.js';
 
 const BUILTIN_IDS = ['generic', 'azure-devops', 'github-issue', 'meeting-notes'];
 
@@ -59,6 +60,14 @@ export function renderSectionButtons(container, onTemplateClick, onPresetChange)
   });
 
   presetRow.appendChild(presetSelect);
+
+  const captureBtn = document.createElement('button');
+  captureBtn.className = 'btn btn-outline-secondary btn-sm';
+  captureBtn.id = 'capture-btn';
+  captureBtn.innerHTML = '⬇';
+  captureBtn.title = 'Download raw clipboard (R) — saves all MIME-types with byte-level dump. Contains sensitive data if the clipboard does, use for debugging only.';
+  captureBtn.addEventListener('click', downloadRawCapture);
+  presetRow.appendChild(captureBtn);
 
   const configBtn = document.createElement('button');
   configBtn.className = 'btn btn-outline-secondary btn-sm';

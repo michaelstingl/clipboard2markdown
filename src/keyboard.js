@@ -3,6 +3,7 @@ import { pasteAsSection } from './clipboard/paste.js';
 import { openHelpModal } from './ui/help-modal.js';
 import { clearOutput } from './ui/clear.js';
 import { downloadAsMarkdown } from './ui/download.js';
+import { downloadRawCapture } from './ui/capture-button.js';
 
 const BUILTIN_IDS = ['generic', 'azure-devops', 'github-issue', 'meeting-notes'];
 
@@ -30,6 +31,11 @@ export function attachKeyboardHandlers(ctx) {
         if (key === '0') {
           event.preventDefault();
           clearOutput(ctx);
+          return;
+        }
+        if (key === 'r' || key === 'R') {
+          event.preventDefault();
+          downloadRawCapture();
           return;
         }
         const template = getActivePreset().templates.find(function(t) { return t.key === key; });
