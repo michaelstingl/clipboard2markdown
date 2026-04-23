@@ -58,7 +58,12 @@ export function registerStructuralRules(turndownService) {
       const parent = node.parentNode;
 
       if (/ol/i.test(parent.nodeName)) {
-        const index = Array.prototype.indexOf.call(parent.children, node) + 1;
+        // Honour <ol start="N">: the first item's number is the start
+        // attribute (or 1 by default), subsequent items increment.
+        const positionInParent = Array.prototype.indexOf.call(parent.children, node);
+        const startAttr = parseInt(parent.getAttribute('start'), 10);
+        const base = Number.isFinite(startAttr) ? startAttr : 1;
+        const index = base + positionInParent;
         prefix = index + '. ';
         while (prefix.length < 4) {
           prefix += ' ';

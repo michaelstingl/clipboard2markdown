@@ -40,8 +40,8 @@ Erklärung für Term B mit **Formatierung**.
 
 ### Ordered List mit start-Attribut
 
-1.  Fünfter Punkt
-2.  Sechster Punkt
+5.  Fünfter Punkt
+6.  Sechster Punkt
 
 ### Absatz mit harten Umbrüchen
 
