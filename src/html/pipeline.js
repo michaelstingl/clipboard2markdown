@@ -7,14 +7,36 @@ const CLEANERS = {
   confluence: applyConfluenceCleanup,
 };
 
-// Baseline cleanup that always runs before source-specific cleaners.
-// <script>/<style> content otherwise leaks into the rendered output
-// (turndown keeps their text contents). <colgroup>/<col> break the
-// turndown-gfm plugin's heading-row detection — it walks previousSibling
-// to decide whether a TH-only <tbody>/<tr> is a header, and a leading
-// <colgroup> makes it give up and emit a spurious empty header row.
+// Elements whose text content must not reach the markdown output. Some
+// are executable (script/style), some are browser-only fallbacks that
+// never surface for a sighted reader (noscript, iframe/object/embed
+// fallback text, video/audio fallback text), and some are UI surfaces
+// hidden by default (dialog without `open`).
+//
+// colgroup/col are removed because a leading <colgroup> sibling breaks
+// the turndown-gfm plugin's heading-row detection — its isFirstTbody
+// check walks previousSibling and only accepts a blank THEAD; a
+// COLGROUP sibling makes it bail, which then emits a spurious empty
+// header row to satisfy markdown's header requirement.
+const STRIP_SELECTORS = [
+  'script',
+  'style',
+  'colgroup',
+  'col',
+  'noscript',
+  'iframe',
+  'object',
+  'embed',
+  'dialog',
+  'video',
+  'audio',
+  '[hidden]',
+  '[style*="display:none"]',
+  '[style*="display: none"]',
+].join(', ');
+
 function applyBaselineCleanup(doc) {
-  doc.querySelectorAll('script, style, colgroup, col').forEach(function(el) {
+  doc.querySelectorAll(STRIP_SELECTORS).forEach(function(el) {
     el.remove();
   });
 }
