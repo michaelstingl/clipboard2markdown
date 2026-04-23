@@ -1,11 +1,12 @@
 import TurndownService from 'turndown';
 import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gfm';
-import { registerHeadingRules } from './rules/headings.js';
 import { registerInlineRules } from './rules/inline.js';
 import { registerStructuralRules } from './rules/structural.js';
 
 // Factory for a configured TurndownService instance. Options match the
-// Pandoc-flavored markdown this tool has produced since day one.
+// Pandoc-flavored markdown this tool has produced since day one; the
+// built-in rules for h1/h2 (setext), <hr>, and <br> pick up these
+// settings directly, so we don't need custom rules for them.
 export function createTurndownService() {
   const service = new TurndownService({
     headingStyle: 'setext',
@@ -14,13 +15,13 @@ export function createTurndownService() {
     codeBlockStyle: 'fenced',
     emDelimiter: '*',
     strongDelimiter: '**',
-    linkStyle: 'inlined'
+    linkStyle: 'inlined',
+    br: '\\',
   });
 
   service.use([tables, strikethrough, taskListItems]);
 
   registerStructuralRules(service);
-  registerHeadingRules(service);
   registerInlineRules(service);
 
   return service;

@@ -1,25 +1,20 @@
-// Structural rules: whitespace-only text nodes, br, hr, links, list items.
+// Structural rules that extend or override turndown's built-ins.
+// What's NOT here, because turndown already handles it:
+//   * setext headings  — config `headingStyle: 'setext'` drives h1/h2
+//   * horizontal rule  — config `hr: '* * * * *'` drives <hr>
+//   * line break       — config `br: '\\'` drives <br> (pandoc style)
+//   * list item        — turndown's default listItem rule honours
+//                        <ol start>, sibling-newlines, and nested
+//                        indentation; the bulletListMarker+'   ' prefix
+//                        matches our pandoc 3-space indent exactly.
 export function registerStructuralRules(turndownService) {
+  // Suppress whitespace-only text nodes so block boundaries stay tight.
   turndownService.addRule('whitespaceOnly', {
     filter: function (node) {
       return node.nodeType === 3 && !node.textContent.trim();
     },
     replacement: function () {
       return '';
-    }
-  });
-
-  turndownService.addRule('br', {
-    filter: 'br',
-    replacement: function () {
-      return '\\\n';
-    }
-  });
-
-  turndownService.addRule('hr', {
-    filter: 'hr',
-    replacement: function () {
-      return '\n\n* * * * *\n\n';
     }
   });
 
@@ -74,31 +69,4 @@ export function registerStructuralRules(turndownService) {
     }
   });
 
-  turndownService.addRule('listItem', {
-    filter: 'li',
-    replacement: function (content, node) {
-      content = content.replace(/^\s+/, '').replace(/\n/gm, '\n    ');
-      let prefix = '-   ';
-      const parent = node.parentNode;
-
-      if (/ol/i.test(parent.nodeName)) {
-        // Honour <ol start="N">: the first item's number is the start
-        // attribute (or 1 by default), subsequent items increment.
-        const positionInParent = Array.prototype.indexOf.call(parent.children, node);
-        const startAttr = parseInt(parent.getAttribute('start'), 10);
-        const base = Number.isFinite(startAttr) ? startAttr : 1;
-        const index = base + positionInParent;
-        prefix = index + '. ';
-        while (prefix.length < 4) {
-          prefix += ' ';
-        }
-      }
-
-      // Append a newline when another item follows, matching turndown's
-      // default listItem behaviour. Without this, sibling <li>s collapse
-      // onto one line.
-      const trailing = node.nextSibling && !/\n$/.test(content) ? '\n' : '';
-      return prefix + content + trailing;
-    }
-  });
 }
