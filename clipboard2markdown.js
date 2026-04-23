@@ -1099,3 +1099,6 @@ import { tables, strikethrough, taskListItems } from '@joplin/turndown-plugin-gf
       });
     }
   });
+
+// Named export for tests. Phase 2 will replace this with src/convert.js.
+export { convert };

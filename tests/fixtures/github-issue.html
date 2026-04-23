@@ -1,0 +1,15 @@
+<html><body>
+<h1>Bug: Checkbox-State beim Paste verloren</h1>
+<p>Beim Kopieren aus Confluence werden abgehakte Todos als <code>[ ]</code> gerendert.</p>
+<h2>Schritte zur Reproduktion</h2>
+<ol>
+  <li>Confluence-Seite mit Task-Liste öffnen</li>
+  <li>Text markieren, kopieren</li>
+  <li>In <a href="https://michaelstingl.github.io/clipboard2markdown/">clipboard2markdown</a> einfügen</li>
+</ol>
+<h2>Erwartetes Verhalten</h2>
+<pre><code class="language-markdown">- [x] Ein erledigter Todo
+- [ ] Ein offener Todo
+</code></pre>
+<p>Siehe auch <del>alte Version</del> <strong>neue Version</strong> im Repo.</p>
+</body></html>
