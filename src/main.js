@@ -1,9 +1,9 @@
-import { openConfigModal } from './src/ui/config-modal.js';
-import { renderSectionButtons } from './src/ui/section-buttons.js';
-import { pasteAsSection } from './src/clipboard/paste.js';
-import { clearOutput } from './src/ui/clear.js';
-import { downloadAsMarkdown } from './src/ui/download.js';
-import { attachKeyboardHandlers } from './src/keyboard.js';
+import { openConfigModal } from './ui/config-modal.js';
+import { renderSectionButtons } from './ui/section-buttons.js';
+import { pasteAsSection } from './clipboard/paste.js';
+import { clearOutput } from './ui/clear.js';
+import { downloadAsMarkdown } from './ui/download.js';
+import { attachKeyboardHandlers } from './keyboard.js';
 
 document.addEventListener('DOMContentLoaded', function () {
   console.log('%c clipboard2markdown ', 'background: #222; color: #bada55; font-weight: bold; padding: 2px 5px; border-radius: 3px;');
