@@ -14,6 +14,9 @@ const fixtures = [
   'azure-devops',
   'plain-html',
   'edge-empty',
+  'edge-inline',
+  'edge-block',
+  'edge-table',
 ];
 
 describe('convert()', () => {

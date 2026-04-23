@@ -1,0 +1,55 @@
+<html><body>
+<h1>Block-Level Edge Cases</h1>
+
+<h3>Blockquote mit mehreren Absätzen</h3>
+<blockquote>
+  <p>Erster Absatz im Zitat mit Umlauten: äöüß.</p>
+  <p>Zweiter Absatz im selben Zitat.</p>
+</blockquote>
+
+<h3>Code-Block mit Sprache</h3>
+<pre><code class="language-python">def hello(name: str) -&gt; None:
+    print(f"Hello, {name}!")
+</code></pre>
+
+<h3>Code-Block ohne Sprache</h3>
+<pre><code>plain code
+no language hint
+</code></pre>
+
+<h3>Definition-Liste</h3>
+<dl>
+  <dt>Term A</dt>
+  <dd>Erklärung für Term A.</dd>
+  <dt>Term B</dt>
+  <dd>Erklärung für Term B mit <strong>Formatierung</strong>.</dd>
+</dl>
+
+<h3>Mixed Lists</h3>
+<ul>
+  <li>Ungeordnetes Item 1
+    <ol>
+      <li>Nested ordered A</li>
+      <li>Nested ordered B</li>
+    </ol>
+  </li>
+  <li>Ungeordnetes Item 2</li>
+</ul>
+
+<h3>Ordered List mit start-Attribut</h3>
+<ol start="5">
+  <li>Fünfter Punkt</li>
+  <li>Sechster Punkt</li>
+</ol>
+
+<h3>Absatz mit harten Umbrüchen</h3>
+<p>Zeile eins.<br/>Zeile zwei.<br/>Zeile drei.</p>
+
+<h3>Leere Elemente</h3>
+<p></p>
+<div></div>
+<p>Danach kommt wieder Text.</p>
+
+<script>alert('should be stripped');</script>
+<style>body { color: red; }</style>
+</body></html>
