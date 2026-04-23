@@ -7,6 +7,7 @@ export function normalize(str) {
             .replace(/[\u2013\u2015]/g, '--')
             .replace(/\u2014/g, '---')
             .replace(/\u2026/g, '...')
+            .replace(/\u00a0/g, ' ')
             .replace(/[ ]+\n/g, '\n')
             .replace(/\s*\\\n/g, '\\\n')
             .replace(/\s*\\\n\s*\\\n/g, '\n\n')

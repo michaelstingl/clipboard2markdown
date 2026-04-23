@@ -49,4 +49,15 @@ export function registerInlineRules(turndownService) {
       return '`' + content + '`';
     }
   });
+
+  // Pandoc-style highlight (==text==). No universal markdown standard
+  // for <mark>, but this is what Pandoc, Obsidian, and most popular
+  // dialects use.
+  turndownService.addRule('mark', {
+    filter: 'mark',
+    replacement: function (content) {
+      if (!content.trim()) return '';
+      return wrapOutsideSpaces(content, '==', '==');
+    }
+  });
 }

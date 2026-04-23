@@ -50,6 +50,30 @@ export function registerStructuralRules(turndownService) {
     }
   });
 
+  // Pandoc-style definition list:
+  //   Term
+  //   : Definition
+  turndownService.addRule('definitionTerm', {
+    filter: 'dt',
+    replacement: function (content) {
+      return '\n\n' + content.trim();
+    }
+  });
+
+  turndownService.addRule('definitionDescription', {
+    filter: 'dd',
+    replacement: function (content) {
+      return '\n: ' + content.trim();
+    }
+  });
+
+  turndownService.addRule('definitionList', {
+    filter: 'dl',
+    replacement: function (content) {
+      return '\n\n' + content.trim() + '\n\n';
+    }
+  });
+
   turndownService.addRule('listItem', {
     filter: 'li',
     replacement: function (content, node) {

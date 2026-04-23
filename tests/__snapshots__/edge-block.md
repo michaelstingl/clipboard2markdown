@@ -24,12 +24,10 @@ no language hint
 ### Definition-Liste
 
 Term A
-
-Erklärung für Term A.
+: Erklärung für Term A.
 
 Term B
-
-Erklärung für Term B mit **Formatierung**.
+: Erklärung für Term B mit **Formatierung**.
 
 ### Mixed Lists
 

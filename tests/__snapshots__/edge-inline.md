@@ -1,7 +1,7 @@
 Inline-Formatierung Edge Cases
 ------------------------------
 
-HTML-Entities: & < > "   -- --- ...
+HTML-Entities: & < > "   -- --- ...
 
 Nested formatting: **bold with *italic* inside** and *italic with **bold** inside*.
 

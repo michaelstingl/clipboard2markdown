@@ -17,6 +17,7 @@ const fixtures = [
   'edge-inline',
   'edge-block',
   'edge-table',
+  'edge-more',
 ];
 
 describe('convert()', () => {
